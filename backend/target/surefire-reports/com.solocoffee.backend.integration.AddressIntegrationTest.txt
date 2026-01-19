@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.solocoffee.backend.integration.AddressIntegrationTest
--------------------------------------------------------------------------------
-Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 38.31 s -- in com.solocoffee.backend.integration.AddressIntegrationTest

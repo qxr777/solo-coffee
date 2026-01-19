@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.solocoffee.backend.integration.AuthIntegrationTest
--------------------------------------------------------------------------------
-Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 80.66 s -- in com.solocoffee.backend.integration.AuthIntegrationTest
