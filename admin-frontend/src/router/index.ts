@@ -48,7 +48,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'members',
         name: 'Members',
-        component: () => import('../views/dashboard/Dashboard.vue'),
+        component: () => import('../views/customer/CustomerList.vue'),
         meta: { title: '会员管理' }
       },
       {
@@ -78,13 +78,13 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'stores',
         name: 'Stores',
-        component: () => import('../views/dashboard/Dashboard.vue'),
+        component: () => import('../views/store/StoreList.vue'),
         meta: { title: '门店管理' }
       },
       {
         path: 'settings',
         name: 'Settings',
-        component: () => import('../views/dashboard/Dashboard.vue'),
+        component: () => import('../views/settings/Settings.vue'),
         meta: { title: '系统设置' }
       }
     ]

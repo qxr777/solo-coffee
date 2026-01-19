@@ -1,5 +1,5 @@
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import { useUserStore } from '../stores/userStore'
 
 // API响应类型
@@ -22,7 +22,7 @@ const api: AxiosInstance = axios.create({
 
 // 请求拦截器
 api.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig) => {
     const userStore = useUserStore()
     const token = userStore.getToken
 
@@ -48,7 +48,7 @@ api.interceptors.response.use(
       return Promise.reject(new Error(data.message || '请求失败'))
     }
 
-    return data
+    return data as any
   },
   (error) => {
     const userStore = useUserStore()
@@ -129,6 +129,24 @@ export const orderService = {
   }
 }
 
+export const employeeService = {
+  getEmployees: (params?: any) => {
+    return api.get<ApiResponse<{ total: number; records: any[] }>>('/employees', { params })
+  },
+  getEmployeeById: (id: number) => {
+    return api.get<ApiResponse<any>>(`/employees/${id}`)
+  },
+  createEmployee: (employeeData: any) => {
+    return api.post<ApiResponse<any>>('/employees', employeeData)
+  },
+  updateEmployee: (id: number, employeeData: any) => {
+    return api.put<ApiResponse<any>>(`/employees/${id}`, employeeData)
+  },
+  deleteEmployee: (id: number) => {
+    return api.delete<ApiResponse<any>>(`/employees/${id}`)
+  }
+}
+
 export const productService = {
   getProducts: (params?: any) => {
     return api.get<ApiResponse<{ total: number; records: any[] }>>('/products', { params })
@@ -187,6 +205,21 @@ export const salesService = {
   }
 }
 
+export const analyticsService = {
+  getOverview: () => {
+    return api.get<ApiResponse<any>>('/analytics/overview')
+  },
+  getSalesTrend: (params?: any) => {
+    return api.get<ApiResponse<any>>('/analytics/sales-trend', { params })
+  },
+  getPopularProducts: (params?: any) => {
+    return api.get<ApiResponse<any>>('/analytics/popular-products', { params })
+  },
+  getCustomerAnalytics: (params?: any) => {
+    return api.get<ApiResponse<any>>('/analytics/customers', { params })
+  }
+}
+
 export const customerService = {
   getCustomers: (params?: any) => {
     return api.get<ApiResponse<{ total: number; records: any[] }>>('/customers', { params })
@@ -218,5 +251,23 @@ export const customerService = {
 
   getCustomerLevel: (customerId: number) => {
     return api.get<ApiResponse<any>>(`/customers/${customerId}/level`)
+  }
+}
+
+export const storeService = {
+  getStores: (params?: any) => {
+    return api.get<ApiResponse<any[]>>('/stores', { params })
+  },
+  getStoreById: (id: number) => {
+    return api.get<ApiResponse<any>>(`/stores/${id}`)
+  },
+  createStore: (storeData: any) => {
+    return api.post<ApiResponse<any>>('/stores', storeData)
+  },
+  updateStore: (id: number, storeData: any) => {
+    return api.put<ApiResponse<any>>(`/stores/${id}`, storeData)
+  },
+  deleteStore: (id: number) => {
+    return api.delete<ApiResponse<any>>(`/stores/${id}`)
   }
 }

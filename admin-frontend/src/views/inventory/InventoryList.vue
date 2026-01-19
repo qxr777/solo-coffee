@@ -29,16 +29,9 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            商品名称
-          </label>
-          <input type="text" class="input-field" placeholder="搜索商品名称">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
             库存状态
           </label>
-          <select class="input-field">
+          <select v-model="filters.status" class="input-field" @change="handleSearch">
             <option value="">全部状态</option>
             <option value="normal">库存正常</option>
             <option value="warning">库存预警</option>
@@ -51,8 +44,8 @@
             搜索
           </label>
           <div class="flex space-x-2">
-            <input type="text" class="input-field flex-1" placeholder="搜索商品编号/名称">
-            <button class="btn-primary whitespace-nowrap">
+            <input v-model="filters.keyword" type="text" class="input-field flex-1" placeholder="搜索商品编号/名称" @keyup.enter="handleSearch">
+            <button class="btn-primary whitespace-nowrap" @click="handleSearch">
               搜索
             </button>
           </div>
@@ -64,22 +57,22 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="p-3 bg-gray-50 rounded-lg">
         <p class="text-sm text-gray-600">商品总数</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">{{ inventoryStats.total }}</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.total }}</p>
       </div>
       
       <div class="p-3 bg-green-50 rounded-lg border border-green-100">
         <p class="text-sm text-green-700">库存正常</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">{{ inventoryStats.normal }}</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.normal }}</p>
       </div>
       
       <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
         <p class="text-sm text-yellow-700">库存预警</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">{{ inventoryStats.warning }}</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.warning }}</p>
       </div>
       
       <div class="p-3 bg-red-50 rounded-lg border border-red-100">
         <p class="text-sm text-red-700">库存不足</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">{{ inventoryStats.empty }}</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.empty }}</p>
       </div>
     </div>
     
@@ -110,7 +103,13 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="item in inventoryList" :key="item.id" class="hover:bg-gray-50 transition-colors">
+            <tr v-if="loading" class="animate-pulse">
+              <td colspan="6" class="px-6 py-10 text-center text-gray-500">正在加载库存数据...</td>
+            </tr>
+            <tr v-else-if="filteredInventory.length === 0">
+              <td colspan="6" class="px-6 py-10 text-center text-gray-500">未找到相关库存</td>
+            </tr>
+            <tr v-for="item in filteredInventory" :key="item.id" v-else class="hover:bg-gray-50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap">
                 <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
               </td>
@@ -122,19 +121,19 @@
                     </svg>
                   </div>
                   <div>
-                    <div class="font-medium text-gray-900">{{ item.productName }}</div>
-                    <div class="text-sm text-gray-500 mt-1">{{ item.productNo }}</div>
+                    <div class="font-medium text-gray-900">{{ item.productName || '未知商品' }}</div>
+                    <div class="text-sm text-gray-500 mt-1">{{ item.productNo || '-' }}</div>
                   </div>
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div :class="getStockClass(item.quantity)">
-                  {{ item.quantity }} {{ item.unit }}
+                  {{ (item.quantity || 0).toFixed(0) }} {{ item.unit || '件' }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-gray-900">
-                  {{ item.warningThreshold }} {{ item.unit }}
+                  {{ (item.warningThreshold || 0).toFixed(0) }} {{ item.unit || '件' }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -144,13 +143,13 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex space-x-2">
-                  <router-link :to="`/inventory/${item.id}`" class="text-blue-600 hover:text-blue-500">
+                  <button @click="handleEdit(item)" class="text-blue-600 hover:text-blue-500">
                     编辑
-                  </router-link>
-                  <button @click="reduceInventory(item.id)" class="text-orange-600 hover:text-orange-500">
+                  </button>
+                  <button @click="updateStock(item, -10)" class="text-orange-600 hover:text-orange-500">
                     减少
                   </button>
-                  <button @click="increaseInventory(item.id)" class="text-green-600 hover:text-green-500">
+                  <button @click="updateStock(item, 10)" class="text-green-600 hover:text-green-500">
                     增加
                   </button>
                 </div>
@@ -160,52 +159,12 @@
         </table>
       </div>
       
-      <!-- 分页 -->
       <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 sm:px-6">
-        <div class="flex-1 flex justify-between sm:hidden">
-          <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            上一页
-          </a>
-          <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            下一页
-          </a>
-        </div>
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
             <p class="text-sm text-gray-700">
-              显示第 <span class="font-medium">1</span> 到 <span class="font-medium">10</span> 条，共 <span class="font-medium">58</span> 条记录
+              共 <span class="font-medium">{{ filteredInventory.length }}</span> 条记录
             </p>
-          </div>
-          <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span class="sr-only">上一页</span>
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
-                1
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                2
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                3
-              </a>
-              <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                ...
-              </span>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                6
-              </a>
-              <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span class="sr-only">下一页</span>
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-              </a>
-            </nav>
           </div>
         </div>
       </div>
@@ -214,164 +173,108 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { inventoryService } from '../../services/api'
 
-// 模拟库存数据
-const inventoryList = ref([
-  {
-    id: 1,
-    productId: 1,
-    productName: '美式咖啡',
-    productNo: 'PD202601010001',
-    quantity: 128,
-    unit: '杯',
-    warningThreshold: 10
-  },
-  {
-    id: 2,
-    productId: 2,
-    productName: '拿铁咖啡',
-    productNo: 'PD202601010002',
-    quantity: 96,
-    unit: '杯',
-    warningThreshold: 10
-  },
-  {
-    id: 3,
-    productId: 3,
-    productName: '卡布奇诺',
-    productNo: 'PD202601010003',
-    quantity: 72,
-    unit: '杯',
-    warningThreshold: 10
-  },
-  {
-    id: 4,
-    productId: 4,
-    productName: '摩卡咖啡',
-    productNo: 'PD202601010004',
-    quantity: 45,
-    unit: '杯',
-    warningThreshold: 10
-  },
-  {
-    id: 5,
-    productId: 5,
-    productName: '焦糖玛奇朵',
-    productNo: 'PD202601010005',
-    quantity: 15,
-    unit: '杯',
-    warningThreshold: 10
-  },
-  {
-    id: 6,
-    productId: 6,
-    productName: '抹茶拿铁',
-    productNo: 'PD202601010006',
-    quantity: 8,
-    unit: '杯',
-    warningThreshold: 10
-  },
-  {
-    id: 7,
-    productId: 7,
-    productName: '牛角包',
-    productNo: 'PD202601010007',
-    quantity: 3,
-    unit: '个',
-    warningThreshold: 5
-  },
-  {
-    id: 8,
-    productId: 8,
-    productName: '芝士蛋糕',
-    productNo: 'PD202601010008',
-    quantity: 0,
-    unit: '块',
-    warningThreshold: 5
-  }
-])
+const inventoryList = ref<any[]>([])
+const loading = ref(false)
 
-// 库存统计
-const inventoryStats = computed(() => {
-  const total = inventoryList.value.length
-  const normal = inventoryList.value.filter(item => item.quantity >= item.warningThreshold).length
-  const warning = inventoryList.value.filter(item => item.quantity > 0 && item.quantity < item.warningThreshold).length
-  const empty = inventoryList.value.filter(item => item.quantity === 0).length
-  
-  return { total, normal, warning, empty }
+const filters = ref({
+  status: '',
+  keyword: ''
 })
 
-// 获取库存样式
-const getStockClass = (stock: number): string => {
-  if (stock === 0) {
-    return 'text-red-600 font-medium'
-  } else if (stock < 10) {
-    return 'text-yellow-600 font-medium'
-  } else {
-    return 'text-gray-900'
+const stats = ref({
+  total: 0,
+  normal: 0,
+  warning: 0,
+  empty: 0
+})
+
+const fetchInventory = async () => {
+  loading.value = true
+  try {
+    const response = await inventoryService.getInventory()
+    inventoryList.value = response.data || []
+    calculateStats()
+  } catch (error) {
+    console.error('加载库存失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 
-// 获取状态样式
-const getStatusClass = (quantity: number, threshold: number): string => {
-  if (quantity === 0) {
-    return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800'
-  } else if (quantity < threshold) {
-    return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'
-  } else {
-    return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'
+const calculateStats = () => {
+  stats.value.total = inventoryList.value.length
+  stats.value.normal = inventoryList.value.filter(i => i.quantity >= i.warningThreshold).length
+  stats.value.warning = inventoryList.value.filter(i => i.quantity > 0 && i.quantity < i.warningThreshold).length
+  stats.value.empty = inventoryList.value.filter(i => (i.quantity || 0) <= 0).length
+}
+
+const filteredInventory = computed(() => {
+  return inventoryList.value.filter(item => {
+    const matchKeyword = !filters.value.keyword || 
+      (item.productName && item.productName.includes(filters.value.keyword)) ||
+      (item.productNo && item.productNo.includes(filters.value.keyword))
+    
+    let matchStatus = true
+    if (filters.value.status === 'normal') matchStatus = item.quantity >= item.warningThreshold
+    if (filters.value.status === 'warning') matchStatus = item.quantity > 0 && item.quantity < item.warningThreshold
+    if (filters.value.status === 'empty') matchStatus = (item.quantity || 0) <= 0
+    
+    return matchKeyword && matchStatus
+  })
+})
+
+const handleSearch = () => {
+  // 纯前端过滤不需要重新请求，由于后端暂不支持过滤参数
+}
+
+const updateStock = async (item: any, delta: number) => {
+  try {
+    const newQuantity = Math.max(0, (item.quantity || 0) + delta)
+    await inventoryService.updateInventoryQuantity(item.id, newQuantity)
+    item.quantity = newQuantity
+    calculateStats()
+  } catch (error) {
+    alert('操作失败: ' + error)
   }
 }
 
-// 获取状态文本
-const getStatusText = (quantity: number, threshold: number): string => {
-  if (quantity === 0) {
-    return '库存不足'
-  } else if (quantity < threshold) {
-    return '库存预警'
-  } else {
-    return '库存正常'
-  }
-}
-
-// 减少库存
-const reduceInventory = (id: number) => {
-  // 实现减少库存的逻辑
-  console.log('减少库存:', id)
-}
-
-// 增加库存
-const increaseInventory = (id: number) => {
-  // 实现增加库存的逻辑
-  console.log('增加库存:', id)
-}
-
-// 触发自动补货
 const triggerAutoReorder = async () => {
   try {
-    // 实现自动补货的逻辑
-    console.log('触发自动补货')
+    await inventoryService.triggerAutoReorder()
+    await fetchInventory()
+    alert('自动补货任务已触发')
   } catch (error) {
-    console.error('自动补货失败:', error)
+    alert('补货失败: ' + error)
   }
 }
 
-// 加载库存数据
-const loadInventoryData = async () => {
-  try {
-    // 从API获取库存数据
-    // const response = await inventoryService.getInventory()
-    // inventoryList.value = response.data.records
-  } catch (error) {
-    console.error('加载库存数据失败:', error)
-  }
+const getStockClass = (stock: number): string => {
+  if (stock <= 0) return 'text-red-600 font-medium'
+  if (stock < 10) return 'text-yellow-600 font-medium'
+  return 'text-gray-900'
 }
 
-// 初始化
+const getStatusClass = (quantity: number, threshold: number): string => {
+  if (quantity <= 0) return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800'
+  if (quantity < threshold) return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'
+  return 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'
+}
+
+const getStatusText = (quantity: number, threshold: number): string => {
+  if (quantity <= 0) return '库存不足'
+  if (quantity < threshold) return '库存预警'
+  return '库存正常'
+}
+
+const handleEdit = (item: any) => {
+  console.log('Edit item:', item)
+}
+
 onMounted(() => {
-  loadInventoryData()
+  fetchInventory()
 })
 </script>
 

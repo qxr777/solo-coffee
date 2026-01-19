@@ -19,26 +19,12 @@
     
     <!-- 客户筛选 -->
     <div class="card">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            客户姓名
-          </label>
-          <input type="text" class="input-field" placeholder="搜索客户姓名">
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            手机号码
-          </label>
-          <input type="text" class="input-field" placeholder="搜索手机号码">
-        </div>
-        
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
             会员等级
           </label>
-          <select class="input-field">
+          <select v-model="filters.levelId" class="input-field" @change="handleSearch">
             <option value="">全部等级</option>
             <option value="1">普通会员</option>
             <option value="2">银卡会员</option>
@@ -52,8 +38,8 @@
             搜索
           </label>
           <div class="flex space-x-2">
-            <input type="text" class="input-field flex-1" placeholder="搜索客户ID/邮箱">
-            <button class="btn-primary whitespace-nowrap">
+            <input v-model="filters.keyword" type="text" class="input-field flex-1" placeholder="客户姓名/手机号" @keyup.enter="handleSearch">
+            <button class="btn-primary whitespace-nowrap" @click="handleSearch">
               搜索
             </button>
           </div>
@@ -65,22 +51,22 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="p-3 bg-gray-50 rounded-lg">
         <p class="text-sm text-gray-600">客户总数</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">{{ customerStats.total }}</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ total }}</p>
       </div>
       
       <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
         <p class="text-sm text-blue-700">会员总数</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">{{ customerStats.members }}</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.members }}</p>
       </div>
       
       <div class="p-3 bg-green-50 rounded-lg border border-green-100">
         <p class="text-sm text-green-700">活跃客户</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">{{ customerStats.active }}</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.active }}</p>
       </div>
       
       <div class="p-3 bg-purple-50 rounded-lg border border-purple-100">
         <p class="text-sm text-purple-700">平均积分</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">{{ customerStats.avgPoints }}</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.avgPoints }}</p>
       </div>
     </div>
     
@@ -111,16 +97,20 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="customer in customers" :key="customer.id" class="hover:bg-gray-50 transition-colors">
+            <tr v-if="loading" class="animate-pulse">
+              <td colspan="6" class="px-6 py-10 text-center text-gray-500">正在获取客户数据...</td>
+            </tr>
+            <tr v-else-if="customers.length === 0">
+              <td colspan="6" class="px-6 py-10 text-center text-gray-500">暂无客户数据</td>
+            </tr>
+            <tr v-for="customer in customers" :key="customer.id" v-else class="hover:bg-gray-50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap">
                 <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
               </td>
               <td class="px-6 py-4">
                 <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                    </svg>
+                  <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                    {{ (customer.name || '?').charAt(0) }}
                   </div>
                   <div>
                     <div class="font-medium text-gray-900">{{ customer.name }}</div>
@@ -136,7 +126,7 @@
                     </span>
                   </div>
                   <div class="text-sm text-gray-600">
-                    积分: <span class="font-medium">{{ customer.points }}</span>
+                    积分: <span class="font-medium">{{ customer.points || 0 }}</span>
                   </div>
                 </div>
               </td>
@@ -158,10 +148,10 @@
                   <router-link :to="`/customers/${customer.id}`" class="text-blue-600 hover:text-blue-500">
                     详情
                   </router-link>
-                  <button @click="addPoints(customer.id)" class="text-green-600 hover:text-green-600">
+                  <button class="text-green-600 hover:text-green-700">
                     加积分
                   </button>
-                  <button @click="editCustomer(customer.id)" class="text-gray-600 hover:text-gray-500">
+                  <button class="text-gray-600 hover:text-gray-500">
                     编辑
                   </button>
                 </div>
@@ -171,51 +161,28 @@
         </table>
       </div>
       
-      <!-- 分页 -->
       <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 sm:px-6">
-        <div class="flex-1 flex justify-between sm:hidden">
-          <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            上一页
-          </a>
-          <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            下一页
-          </a>
-        </div>
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
             <p class="text-sm text-gray-700">
-              显示第 <span class="font-medium">1</span> 到 <span class="font-medium">10</span> 条，共 <span class="font-medium">156</span> 条记录
+              显示第 <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> 到 <span class="font-medium">{{ Math.min(currentPage * pageSize, total) }}</span> 条，共 <span class="font-medium">{{ total }}</span> 条记录
             </p>
           </div>
-          <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span class="sr-only">上一页</span>
+          <div v-if="total > pageSize">
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              <button @click="currentPage--" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
-                1
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                2
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                3
-              </a>
-              <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                ...
+              </button>
+              <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                {{ currentPage }}
               </span>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                16
-              </a>
-              <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span class="sr-only">下一页</span>
+              <button @click="currentPage++" :disabled="currentPage * pageSize >= total" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
-              </a>
+              </button>
             </nav>
           </div>
         </div>
@@ -225,98 +192,62 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { customerService } from '../../services/api'
+import dayjs from 'dayjs'
 
-// 模拟客户数据
-const customers = ref([
-  {
-    id: 1,
-    name: '张三',
-    phone: '13800138000',
-    email: 'zhangsan@example.com',
-    points: 1500,
-    memberLevelId: 2,
-    createdAt: '2026-01-01T10:00:00'
-  },
-  {
-    id: 2,
-    name: '李四',
-    phone: '13900139000',
-    email: 'lisi@example.com',
-    points: 850,
-    memberLevelId: 1,
-    createdAt: '2026-01-02T11:30:00'
-  },
-  {
-    id: 3,
-    name: '王五',
-    phone: '13700137000',
-    email: 'wangwu@example.com',
-    points: 3200,
-    memberLevelId: 3,
-    createdAt: '2026-01-03T14:20:00'
-  },
-  {
-    id: 4,
-    name: '赵六',
-    phone: '13600136000',
-    email: 'zhaoliu@example.com',
-    points: 5000,
-    memberLevelId: 4,
-    createdAt: '2026-01-04T09:15:00'
-  },
-  {
-    id: 5,
-    name: '钱七',
-    phone: '13500135000',
-    email: 'qianqi@example.com',
-    points: 320,
-    memberLevelId: 1,
-    createdAt: '2026-01-05T16:45:00'
-  },
-  {
-    id: 6,
-    name: '孙八',
-    phone: '13400134000',
-    email: 'sunba@example.com',
-    points: 1800,
-    memberLevelId: 2,
-    createdAt: '2026-01-06T13:30:00'
-  },
-  {
-    id: 7,
-    name: '周九',
-    phone: '13300133000',
-    email: 'zhoujiu@example.com',
-    points: 2500,
-    memberLevelId: 2,
-    createdAt: '2026-01-07T10:45:00'
-  },
-  {
-    id: 8,
-    name: '吴十',
-    phone: '13200132000',
-    email: 'wushi@example.com',
-    points: 4200,
-    memberLevelId: 3,
-    createdAt: '2026-01-08T15:20:00'
-  }
-])
+const customers = ref<any[]>([])
+const loading = ref(false)
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
-// 客户统计
-const customerStats = computed(() => {
-  const total = customers.value.length
-  const members = customers.value.filter(customer => customer.memberLevelId > 0).length
-  const active = customers.value.filter(customer => customer.points > 0).length
-  const avgPoints = Math.round(customers.value.reduce((sum, customer) => sum + customer.points, 0) / total)
-  
-  return { total, members, active, avgPoints }
+const filters = ref({
+  levelId: '',
+  keyword: ''
 })
+
+const stats = ref({
+  total: 0,
+  members: 0,
+  active: 0,
+  avgPoints: 0
+})
+
+const fetchCustomers = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value,
+      levelId: filters.value.levelId || undefined,
+      keyword: filters.value.keyword || undefined
+    }
+    const response = await customerService.getCustomers(params)
+    customers.value = response.data.records || []
+    total.value = response.data.total || 0
+    
+    // 加载一些统计数据（实际应由后端接口提供，此处根据当前列表大致估算）
+    stats.value.total = total.value
+    stats.value.members = customers.value.filter(c => c.memberLevelId >= 1).length
+    stats.value.active = customers.value.filter(c => c.points > 0).length
+    const sumPoints = customers.value.reduce((sum, c) => sum + (c.points || 0), 0)
+    stats.value.avgPoints = customers.value.length > 0 ? Math.round(sumPoints / customers.value.length) : 0
+  } catch (error) {
+    console.error('加载客户数据失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSearch = () => {
+  currentPage.value = 1
+  fetchCustomers()
+}
 
 // 获取会员等级样式
 const getLevelClass = (levelId: number): string => {
-  const classes = {
+  const classes: any = {
     1: 'bg-gray-100 text-gray-800',
     2: 'bg-blue-100 text-blue-800',
     3: 'bg-purple-100 text-purple-800',
@@ -327,7 +258,7 @@ const getLevelClass = (levelId: number): string => {
 
 // 获取会员等级名称
 const getLevelName = (levelId: number): string => {
-  const levelNames = {
+  const levelNames: any = {
     1: '普通会员',
     2: '银卡会员',
     3: '金卡会员',
@@ -337,41 +268,16 @@ const getLevelName = (levelId: number): string => {
 }
 
 // 格式化日期
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  })
+const formatDate = (dateString?: string): string => {
+  if (!dateString) return '从未记录'
+  return dayjs(dateString).format('YYYY-MM-DD')
 }
 
-// 添加积分
-const addPoints = (customerId: number) => {
-  // 实现添加积分的逻辑
-  console.log('添加积分:', customerId)
-}
-
-// 编辑客户
-const editCustomer = (customerId: number) => {
-  // 实现编辑客户的逻辑
-  console.log('编辑客户:', customerId)
-}
-
-// 加载客户数据
-const loadCustomers = async () => {
-  try {
-    // 从API获取客户数据
-    // const response = await customerService.getCustomers()
-    // customers.value = response.data.records
-  } catch (error) {
-    console.error('加载客户数据失败:', error)
-  }
-}
+watch(currentPage, fetchCustomers)
 
 // 初始化
 onMounted(() => {
-  loadCustomers()
+  fetchCustomers()
 })
 </script>
 

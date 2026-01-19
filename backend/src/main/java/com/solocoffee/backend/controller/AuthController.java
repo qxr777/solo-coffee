@@ -14,18 +14,21 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
-    
+
     @Autowired
     private AuthService authService;
-    
+
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<?>> login(@RequestBody Map<String, Object> request) {
         try {
             String phone = (String) request.get("phone");
+            if (phone == null) {
+                phone = (String) request.get("username");
+            }
             String password = (String) request.get("password");
-            
+
             Map<String, Object> response = authService.login(phone, password, false);
             return ResponseEntity.ok(ApiResponse.success("登录成功", response));
         } catch (RuntimeException e) {
@@ -36,13 +39,13 @@ public class AuthController {
             return ResponseEntity.internalServerError().body(ApiResponse.internalError("系统内部错误"));
         }
     }
-    
+
     @PostMapping("/sms-login")
     public ResponseEntity<ApiResponse<?>> smsLogin(@RequestBody Map<String, Object> request) {
         try {
             String phone = (String) request.get("phone");
             String code = (String) request.get("code");
-            
+
             Map<String, Object> response = authService.smsLogin(phone, code);
             return ResponseEntity.ok(ApiResponse.success("登录成功", response));
         } catch (RuntimeException e) {
@@ -53,12 +56,12 @@ public class AuthController {
             return ResponseEntity.internalServerError().body(ApiResponse.internalError("系统内部错误"));
         }
     }
-    
+
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<?>> refreshToken(@RequestBody Map<String, Object> request) {
         try {
             String refreshToken = (String) request.get("refreshToken");
-            
+
             Map<String, Object> response = authService.refreshToken(refreshToken);
             return ResponseEntity.ok(ApiResponse.success("令牌刷新成功", response));
         } catch (RuntimeException e) {
@@ -69,7 +72,7 @@ public class AuthController {
             return ResponseEntity.internalServerError().body(ApiResponse.internalError("系统内部错误"));
         }
     }
-    
+
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<?>> logout() {
         try {
@@ -80,12 +83,12 @@ public class AuthController {
             return ResponseEntity.internalServerError().body(ApiResponse.internalError("系统内部错误"));
         }
     }
-    
+
     @PostMapping("/send-sms")
     public ResponseEntity<ApiResponse<?>> sendSms(@RequestBody Map<String, Object> request) {
         try {
             String phone = (String) request.get("phone");
-            
+
             authService.sendSms(phone, 1);
             return ResponseEntity.ok(ApiResponse.success("验证码发送成功", null));
         } catch (RuntimeException e) {
@@ -96,12 +99,13 @@ public class AuthController {
             return ResponseEntity.internalServerError().body(ApiResponse.internalError("系统内部错误"));
         }
     }
-    
+
     @PostMapping("/oauth/{provider}")
-    public ResponseEntity<ApiResponse<?>> oauthLogin(@PathVariable String provider, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<?>> oauthLogin(@PathVariable String provider,
+            @RequestBody Map<String, Object> request) {
         try {
             String code = (String) request.get("code");
-            
+
             Map<String, Object> response = authService.oauthLogin(provider, code);
             return ResponseEntity.ok(ApiResponse.success("第三方登录成功", response));
         } catch (RuntimeException e) {

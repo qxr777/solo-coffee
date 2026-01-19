@@ -32,12 +32,9 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">
             商品分类
           </label>
-          <select class="input-field">
+          <select v-model="filters.categoryId" class="input-field" @change="handleSearch">
             <option value="">全部分类</option>
-            <option value="1">咖啡</option>
-            <option value="2">茶饮</option>
-            <option value="3">甜点</option>
-            <option value="4">轻食</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.categoryName }}</option>
           </select>
         </div>
         
@@ -45,10 +42,10 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">
             商品状态
           </label>
-          <select class="input-field">
+          <select v-model="filters.status" class="input-field" @change="handleSearch">
             <option value="">全部状态</option>
-            <option value="1">上架</option>
-            <option value="0">下架</option>
+            <option :value="1">上架</option>
+            <option :value="0">下架</option>
           </select>
         </div>
         
@@ -57,8 +54,8 @@
             搜索
           </label>
           <div class="flex space-x-2">
-            <input type="text" class="input-field flex-1" placeholder="商品名称/编号">
-            <button class="btn-primary whitespace-nowrap">
+            <input v-model="filters.keyword" type="text" class="input-field flex-1" placeholder="商品名称/编号" @keyup.enter="handleSearch">
+            <button class="btn-primary whitespace-nowrap" @click="handleSearch">
               搜索
             </button>
           </div>
@@ -70,22 +67,22 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <div class="p-3 bg-gray-50 rounded-lg">
         <p class="text-sm text-gray-600">商品总数</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">128</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ total }}</p>
       </div>
       
       <div class="p-3 bg-green-50 rounded-lg border border-green-100">
         <p class="text-sm text-green-700">上架商品</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">112</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.online }}</p>
       </div>
       
       <div class="p-3 bg-red-50 rounded-lg border border-red-100">
         <p class="text-sm text-red-700">下架商品</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">16</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.offline }}</p>
       </div>
       
       <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
         <p class="text-sm text-yellow-700">库存预警</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">8</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.lowStock }}</p>
       </div>
     </div>
 
@@ -119,13 +116,20 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="product in products" :key="product.id" class="hover:bg-gray-50 transition-colors">
+            <tr v-if="loading" class="animate-pulse">
+              <td colspan="7" class="px-6 py-10 text-center text-gray-500">正在努力加载商品数据...</td>
+            </tr>
+            <tr v-else-if="products.length === 0">
+              <td colspan="7" class="px-6 py-10 text-center text-gray-500">未找到符合条件的商品</td>
+            </tr>
+            <tr v-for="product in products" :key="product.id" v-else class="hover:bg-gray-50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap">
                 <input type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden">
+                  <img v-if="product.imageUrl" :src="product.imageUrl" class="w-full h-full object-cover">
+                  <svg v-else class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H18M15,3V5H6C4.89,5 4,5.9 4,7V19A1,1 0 0,0 5,20H19A1,1 0 0,0 20,19V7C20,5.89 19.1,5 18,5H13V3M15,15H9V17H15V15Z"></path>
                   </svg>
                 </div>
@@ -133,15 +137,15 @@
               <td class="px-6 py-4">
                 <div class="font-medium text-gray-900">{{ product.name }}</div>
                 <div class="text-sm text-gray-500 mt-1">{{ product.productNo }}</div>
-                <div class="text-sm text-gray-600 mt-1">{{ product.categoryName }}</div>
+                <div class="text-sm text-gray-600 mt-1">{{ product.categoryName || '未分类' }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="font-medium text-gray-900">¥{{ product.price.toFixed(2) }}</div>
-                <div class="text-sm text-gray-500 mt-1">成本: ¥{{ product.costPrice.toFixed(2) }}</div>
+                <div class="font-medium text-gray-900">¥{{ (product.price || 0).toFixed(2) }}</div>
+                <div class="text-sm text-gray-500 mt-1">成本: ¥{{ (product.costPrice || 0).toFixed(2) }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div :class="getStockClass(product.stock)">
-                  {{ product.stock }} {{ product.unit }}
+                <div :class="getStockClass(product.stock || 0)">
+                  {{ product.stock || 0 }} {{ product.unit || '件' }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -154,10 +158,10 @@
                   <router-link :to="`/products/${product.id}`" class="text-blue-600 hover:text-blue-500">
                     编辑
                   </router-link>
-                  <button v-if="product.status === 1" class="text-red-600 hover:text-red-500">
+                  <button v-if="product.status === 1" class="text-red-600 hover:text-red-500" @click="updateStatus(product.id, 0)">
                     下架
                   </button>
-                  <button v-else class="text-green-600 hover:text-green-500">
+                  <button v-else class="text-green-600 hover:text-green-500" @click="updateStatus(product.id, 1)">
                     上架
                   </button>
                   <button class="text-gray-600 hover:text-gray-500">
@@ -170,51 +174,29 @@
         </table>
       </div>
       
-      <!-- 分页 -->
       <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 sm:px-6">
-        <div class="flex-1 flex justify-between sm:hidden">
-          <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            上一页
-          </a>
-          <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-            下一页
-          </a>
-        </div>
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
             <p class="text-sm text-gray-700">
-              显示第 <span class="font-medium">1</span> 到 <span class="font-medium">10</span> 条，共 <span class="font-medium">128</span> 条记录
+              显示第 <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> 到 <span class="font-medium">{{ Math.min(currentPage * pageSize, total) }}</span> 条，共 <span class="font-medium">{{ total }}</span> 条记录
             </p>
           </div>
-          <div>
-            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span class="sr-only">上一页</span>
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <div v-if="total > pageSize">
+            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              <button @click="currentPage--" :disabled="currentPage === 1" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
-                1
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                2
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                3
-              </a>
-              <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                ...
+              </button>
+              <!-- 简化版翻页，实际上应该根据 totalPages 循环 -->
+              <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                {{ currentPage }}
               </span>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                13
-              </a>
-              <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span class="sr-only">下一页</span>
-                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <button @click="currentPage++" :disabled="currentPage * pageSize >= total" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
-              </a>
+              </button>
             </nav>
           </div>
         </div>
@@ -224,109 +206,78 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, watch, onMounted } from 'vue'
+import { productService } from '../../services/api'
 
-// 模拟商品数据
-const products = ref([
-  {
-    id: 1,
-    productNo: 'PD202601010001',
-    name: '美式咖啡',
-    categoryName: '咖啡',
-    price: 32.00,
-    costPrice: 12.00,
-    stock: 128,
-    unit: '杯',
-    status: 1
-  },
-  {
-    id: 2,
-    productNo: 'PD202601010002',
-    name: '拿铁咖啡',
-    categoryName: '咖啡',
-    price: 36.00,
-    costPrice: 15.00,
-    stock: 96,
-    unit: '杯',
-    status: 1
-  },
-  {
-    id: 3,
-    productNo: 'PD202601010003',
-    name: '卡布奇诺',
-    categoryName: '咖啡',
-    price: 36.00,
-    costPrice: 15.00,
-    stock: 72,
-    unit: '杯',
-    status: 1
-  },
-  {
-    id: 4,
-    productNo: 'PD202601010004',
-    name: '摩卡咖啡',
-    categoryName: '咖啡',
-    price: 40.00,
-    costPrice: 18.00,
-    stock: 45,
-    unit: '杯',
-    status: 1
-  },
-  {
-    id: 5,
-    productNo: 'PD202601010005',
-    name: '焦糖玛奇朵',
-    categoryName: '咖啡',
-    price: 42.00,
-    costPrice: 20.00,
-    stock: 15,
-    unit: '杯',
-    status: 1
-  },
-  {
-    id: 6,
-    productNo: 'PD202601010006',
-    name: '抹茶拿铁',
-    categoryName: '茶饮',
-    price: 38.00,
-    costPrice: 16.00,
-    stock: 8,
-    unit: '杯',
-    status: 1
-  },
-  {
-    id: 7,
-    productNo: 'PD202601010007',
-    name: '牛角包',
-    categoryName: '甜点',
-    price: 12.00,
-    costPrice: 5.00,
-    stock: 3,
-    unit: '个',
-    status: 1
-  },
-  {
-    id: 8,
-    productNo: 'PD202601010008',
-    name: '芝士蛋糕',
-    categoryName: '甜点',
-    price: 28.00,
-    costPrice: 12.00,
-    stock: 0,
-    unit: '块',
-    status: 0
+const products = ref<any[]>([])
+const loading = ref(false)
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
+const categories = ref<any[]>([])
+
+const filters = ref({
+  categoryId: '',
+  status: '',
+  keyword: ''
+})
+
+const stats = ref({
+  online: 0,
+  offline: 0,
+  lowStock: 0
+})
+
+const fetchProducts = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value,
+      categoryId: filters.value.categoryId || undefined,
+      status: filters.value.status !== '' ? filters.value.status : undefined,
+      keyword: filters.value.keyword || undefined
+    }
+    const response = await productService.getProducts(params)
+    // 兼容后端直接返回List或分页对象
+    if (Array.isArray(response.data)) {
+      products.value = response.data
+      total.value = response.data.length
+    } else {
+      products.value = response.data.records || []
+      total.value = response.data.total || 0
+    }
+    
+    // 计算一些统计数据
+    stats.value.online = products.value.filter(p => p.status === 1).length
+    stats.value.offline = products.value.filter(p => p.status === 0).length
+    stats.value.lowStock = products.value.filter(p => (p.stock || 0) < 10).length
+  } catch (error) {
+    console.error('获取商品列表失败:', error)
+  } finally {
+    loading.value = false
   }
-])
+}
+
+const handleSearch = () => {
+  currentPage.value = 1
+  fetchProducts()
+}
+
+const updateStatus = async (id: number, status: number) => {
+  try {
+    await productService.updateProduct(id, { status })
+    fetchProducts()
+  } catch (error) {
+    alert('操作失败: ' + error)
+  }
+}
 
 // 获取库存样式
 const getStockClass = (stock: number): string => {
-  if (stock === 0) {
-    return 'text-red-600 font-medium'
-  } else if (stock < 10) {
-    return 'text-yellow-600 font-medium'
-  } else {
-    return 'text-gray-900'
-  }
+  if (stock === 0) return 'text-red-600 font-medium'
+  if (stock < 10) return 'text-yellow-600 font-medium'
+  return 'text-gray-900'
 }
 
 // 获取状态样式
@@ -335,6 +286,12 @@ const getStatusClass = (status: number): string => {
     ? 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'
     : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800'
 }
+
+watch(currentPage, fetchProducts)
+
+onMounted(() => {
+  fetchProducts()
+})
 </script>
 
 <style scoped>

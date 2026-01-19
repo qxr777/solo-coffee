@@ -145,18 +145,18 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { productService } from '../../services/api' 
+import { employeeService } from '../../services/api' 
 
 const isScheduling = ref(false)
 const employees = ref<any[]>([])
 
 const fetchEmployees = async () => {
   try {
-    const response = await fetch('/api/v1/employees')
-    const data = await response.json()
-    if (data.code === 200) {
+    const response = await employeeService.getEmployees({ page: 1, size: 100 })
+    const data = response.data
+    if (data.items) {
       // 映射后端数据到前端视图
-      employees.value = data.data.items.map((emp: any, index: number) => ({
+      employees.value = data.items.map((emp: any) => ({
         id: emp.id,
         name: emp.name,
         position: emp.position || '咖啡师',
