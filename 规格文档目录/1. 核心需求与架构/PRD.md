@@ -124,7 +124,7 @@ Solo Coffee致力于成为咖啡馆行业领先的企业级管理与营销平台
 | 消息队列 | RabbitMQ/Kafka |
 | API网关 | Spring Cloud Gateway |
 | 认证授权 | Spring Security + JWT |
-| 前端框架 | Vue.js 3.x (web), React Native/Flutter (mobile) |
+| 前端框架 | Vue.js 3.x (Admin & Customer Web App) |
 | AI框架 | TensorFlow/PyTorch, Scikit-learn |
 | 部署方式 | Docker + Kubernetes |
 | 监控系统 | Prometheus + Grafana |

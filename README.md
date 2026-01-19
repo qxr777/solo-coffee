@@ -110,10 +110,10 @@ solo-coffee/
 - **认证授权**：Spring Security + JWT
 
 ### 5.2 前端技术栈
-- **Web前端**：Vue.js 3.x
-- **移动端**：React Native/Flutter
-- **状态管理**：Pinia (Vue.js), Redux/Context API (React Native)
-- **UI组件库**：Element Plus (Web), Ant Design Mobile (Mobile)
+- **Web前端/管理端**：Vue.js 3.x
+- **移动端 (Customer App)**：Vue.js 3.x (Responsive Web Application)
+- **状态管理**：Pinia
+- **UI组件库**：Element Plus (Admin), Tailwind CSS (Customer)
 
 ### 5.3 AI服务技术栈
 - **框架**：Python, FastAPI
