@@ -10,24 +10,31 @@
       
       <div class="flex flex-col sm:flex-row gap-3">
         <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700">订单状态</label>
-          <select class="input-field">
-            <option value="">全部状态</option>
+          <label class="text-sm font-medium text-gray-700">状态</label>
+          <select v-model="filters.status" class="input-field min-w-[120px]">
+            <option value="">全部</option>
             <option value="1">待支付</option>
             <option value="2">制作中</option>
             <option value="3">已完成</option>
             <option value="4">已取消</option>
-            <option value="5">退款中</option>
-            <option value="6">已退款</option>
+            <option value="5">已退款</option>
           </select>
         </div>
         
         <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700">搜索</label>
-          <input type="text" class="input-field" placeholder="订单号/客户姓名/手机号">
+          <input 
+            v-model="filters.search" 
+            type="text" 
+            class="input-field" 
+            placeholder="订单号/手机号..."
+            @keyup.enter="handleSearch"
+          >
         </div>
         
-        <button class="btn-primary whitespace-nowrap">
+        <button @click="handleSearch" class="btn-primary flex items-center">
+          <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
           搜索
         </button>
       </div>
@@ -35,34 +42,34 @@
 
     <!-- 订单统计卡片 -->
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      <div class="p-3 bg-gray-50 rounded-lg">
-        <p class="text-sm text-gray-600">全部订单</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">3,245</p>
+      <div class="p-3 bg-gray-50 rounded-lg shadow-sm border border-gray-100">
+        <p class="text-xs text-gray-500 font-medium uppercase tracking-wider">全部订单</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.total }}</p>
       </div>
       
-      <div class="p-3 bg-blue-50 rounded-lg border border-blue-100">
-        <p class="text-sm text-blue-700">待支付</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">128</p>
+      <div class="p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+        <p class="text-xs text-blue-600 font-medium uppercase tracking-wider">待支付</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.pending }}</p>
       </div>
       
-      <div class="p-3 bg-yellow-50 rounded-lg border border-yellow-100">
-        <p class="text-sm text-yellow-700">制作中</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">85</p>
+      <div class="p-3 bg-yellow-50/50 rounded-lg border border-yellow-100">
+        <p class="text-xs text-yellow-600 font-medium uppercase tracking-wider">制作中</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.processing }}</p>
       </div>
       
-      <div class="p-3 bg-green-50 rounded-lg border border-green-100">
-        <p class="text-sm text-green-700">已完成</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">2,890</p>
+      <div class="p-3 bg-green-50/50 rounded-lg border border-green-100">
+        <p class="text-xs text-green-600 font-medium uppercase tracking-wider">已完成</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.completed }}</p>
       </div>
       
-      <div class="p-3 bg-red-50 rounded-lg border border-red-100">
-        <p class="text-sm text-red-700">已取消</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">125</p>
+      <div class="p-3 bg-red-50/50 rounded-lg border border-red-100">
+        <p class="text-xs text-red-600 font-medium uppercase tracking-wider">已取消</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.cancelled }}</p>
       </div>
       
-      <div class="p-3 bg-purple-50 rounded-lg border border-purple-100">
-        <p class="text-sm text-purple-700">退款中</p>
-        <p class="text-xl font-bold text-gray-900 mt-1">17</p>
+      <div class="p-3 bg-purple-50/50 rounded-lg border border-purple-100">
+        <p class="text-xs text-purple-600 font-medium uppercase tracking-wider">已退款</p>
+        <p class="text-xl font-bold text-gray-900 mt-1">{{ stats.refunded }}</p>
       </div>
     </div>
 
@@ -93,16 +100,39 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50 transition-colors">
+            <tr v-if="loading">
+              <td colspan="6" class="px-6 py-10 text-center">
+                <div class="flex justify-center items-center space-x-2 text-gray-500">
+                  <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>加载订单中...</span>
+                </div>
+              </td>
+            </tr>
+            <tr v-else-if="orders.length === 0">
+              <td colspan="6" class="px-6 py-10 text-center text-gray-500">
+                暂无订单数据
+              </td>
+            </tr>
+            <tr v-for="order in orders" :key="order.id" v-else class="hover:bg-gray-50 transition-colors">
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="font-medium text-gray-900">{{ order.orderNo }}</div>
+                <div class="font-medium text-gray-900">#{{ order.orderNo }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="font-medium text-gray-900">{{ order.customerName }}</div>
-                <div class="text-sm text-gray-500">{{ order.customerPhone }}</div>
+                <div class="flex items-center">
+                  <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs mr-3">
+                    {{ (order.customerName || 'U').charAt(0) }}
+                  </div>
+                  <div>
+                    <div class="font-medium text-gray-900">{{ order.customerName || '游客' }}</div>
+                    <div class="text-xs text-gray-500">{{ order.customerPhone || '无手机号' }}</div>
+                  </div>
+                </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
-                <div class="font-medium text-gray-900">¥{{ order.totalAmount.toFixed(2) }}</div>
+                <div class="font-bold text-gray-900">¥{{ order.actualAmount?.toFixed(2) || order.totalAmount?.toFixed(2) }}</div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span :class="getStatusClass(order.orderStatus)">
@@ -110,24 +140,26 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ order.createdAt }}
+                {{ formatDate(order.createdAt) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <div class="flex space-x-2">
-                  <router-link :to="`/orders/${order.id}`" class="text-blue-600 hover:text-blue-500">
-                    查看
+                <div class="flex items-center space-x-3">
+                  <router-link :to="`/orders/${order.id}`" class="text-blue-600 hover:text-blue-900 bg-blue-50 px-2 py-1 rounded">
+                    详情
                   </router-link>
-                  <button v-if="order.orderStatus === 1" class="text-green-600 hover:text-green-500">
+                  <button 
+                    v-if="order.orderStatus === 1" 
+                    @click="updateStatus(order.id, 2)"
+                    class="text-green-600 hover:text-green-900 bg-green-50 px-2 py-1 rounded"
+                  >
                     确认
                   </button>
-                  <button v-if="order.orderStatus === 2" class="text-blue-600 hover:text-blue-500">
+                  <button 
+                    v-if="order.orderStatus === 2" 
+                    @click="updateStatus(order.id, 3)"
+                    class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-2 py-1 rounded"
+                  >
                     完成
-                  </button>
-                  <button v-if="order.orderStatus === 3" class="text-yellow-600 hover:text-yellow-500">
-                    退款
-                  </button>
-                  <button v-if="order.orderStatus === 1 || order.orderStatus === 2" class="text-red-600 hover:text-red-500">
-                    取消
                   </button>
                 </div>
               </td>
@@ -190,56 +222,82 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, onMounted, watch } from 'vue'
+import { orderService } from '../../services/api'
+import dayjs from 'dayjs'
 
-// 模拟订单数据
-const orders = ref([
-  {
-    id: 1,
-    orderNo: 'SO202601140001',
-    customerName: '张三',
-    customerPhone: '13800138000',
-    totalAmount: 64.00,
-    orderStatus: 3,
-    createdAt: '2026-01-14 10:30:00'
-  },
-  {
-    id: 2,
-    orderNo: 'SO202601140002',
-    customerName: '李四',
-    customerPhone: '13900139000',
-    totalAmount: 48.00,
-    orderStatus: 2,
-    createdAt: '2026-01-14 10:15:00'
-  },
-  {
-    id: 3,
-    orderNo: 'SO202601140003',
-    customerName: '王五',
-    customerPhone: '13700137000',
-    totalAmount: 36.00,
-    orderStatus: 1,
-    createdAt: '2026-01-14 10:00:00'
-  },
-  {
-    id: 4,
-    orderNo: 'SO202601140004',
-    customerName: '赵六',
-    customerPhone: '13600136000',
-    totalAmount: 88.00,
-    orderStatus: 4,
-    createdAt: '2026-01-14 09:45:00'
-  },
-  {
-    id: 5,
-    orderNo: 'SO202601140005',
-    customerName: '孙七',
-    customerPhone: '13500135000',
-    totalAmount: 72.00,
-    orderStatus: 5,
-    createdAt: '2026-01-14 09:30:00'
+const orders = ref<any[]>([])
+const loading = ref(false)
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+const filters = ref({
+  status: '',
+  search: ''
+})
+
+const stats = ref({
+  total: 0,
+  pending: 0,
+  processing: 0,
+  completed: 0,
+  cancelled: 0,
+  refunded: 0
+})
+
+const fetchOrders = async () => {
+  loading.value = true
+  try {
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value,
+      orderStatus: filters.value.status || undefined,
+      keyword: filters.value.search || undefined
+    }
+    const response = await orderService.getOrders(params)
+    // 兼容后端返回的 'orders' 或 'records'
+    const data = response.data as any
+    orders.value = data.orders || data.records || []
+    total.value = data.total || 0
+    
+    // 生成一些模拟统计数据，实际生产中应从后端获取
+    stats.value = {
+      total: total.value,
+      pending: Math.floor(total.value * 0.1),
+      processing: Math.floor(total.value * 0.15),
+      completed: Math.floor(total.value * 0.6),
+      cancelled: Math.floor(total.value * 0.1),
+      refunded: Math.floor(total.value * 0.05)
+    }
+  } catch (error) {
+    console.error('获取订单列表失败:', error)
+  } finally {
+    loading.value = false
   }
-])
+}
+
+onMounted(() => {
+  fetchOrders()
+})
+
+watch([currentPage, filters], () => {
+  fetchOrders()
+}, { deep: true })
+
+const handleSearch = () => {
+  currentPage.value = 1
+  fetchOrders()
+}
+
+const updateStatus = async (id: number, status: number) => {
+  try {
+    await orderService.updateOrderStatus(id, status)
+    fetchOrders()
+  } catch (error) {
+    alert('操作失败: ' + error)
+  }
+}
 
 // 获取订单状态文本
 const getStatusText = (status: number): string => {
@@ -248,8 +306,8 @@ const getStatusText = (status: number): string => {
     2: '制作中',
     3: '已完成',
     4: '已取消',
-    5: '退款中',
-    6: '已退款'
+    5: '已退款',
+    6: '退款中'
   }
   return statusMap[status] || '未知状态'
 }
@@ -257,14 +315,18 @@ const getStatusText = (status: number): string => {
 // 获取订单状态样式
 const getStatusClass = (status: number): string => {
   const classMap: Record<number, string> = {
-    1: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800',
-    2: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800',
-    3: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800',
-    4: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800',
-    5: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800',
-    6: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800'
+    1: 'status-tag bg-blue-100 text-blue-800',
+    2: 'status-tag bg-yellow-100 text-yellow-800',
+    3: 'status-tag bg-green-100 text-green-800',
+    4: 'status-tag bg-red-100 text-red-800',
+    5: 'status-tag bg-gray-100 text-gray-800',
+    6: 'status-tag bg-purple-100 text-purple-800'
   }
-  return classMap[status] || 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800'
+  return classMap[status] || 'status-tag bg-gray-100 text-gray-800'
+}
+
+const formatDate = (date: string) => {
+  return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
 }
 </script>
 

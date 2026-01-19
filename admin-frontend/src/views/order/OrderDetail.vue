@@ -26,30 +26,36 @@
     </div>
 
     <!-- 订单状态和基本信息 -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div v-if="loading" class="flex justify-center items-center py-20">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    </div>
+    
+    <div v-else-if="order" class="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
       <!-- 订单基本信息 -->
       <div class="card lg:col-span-2">
         <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
           <div>
-            <h2 class="text-lg font-semibold text-gray-900">订单 #{{ order.orderNo }}</h2>
-            <p class="text-sm text-gray-600 mt-1">创建时间: {{ order.createdAt }}</p>
+            <h2 class="text-xl font-bold text-gray-900">订单 #{{ order.orderNo }}</h2>
+            <p class="text-sm text-gray-500 mt-1 flex items-center">
+              <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              创建于: {{ formatDate(order.createdAt) }}
+            </p>
           </div>
           
-          <div>
-            <span :class="getStatusClass(order.orderStatus)" class="mb-2 inline-block">
+          <div class="flex flex-col items-end">
+            <span :class="getStatusClass(order.orderStatus)" class="mb-3 px-3 py-1 text-sm font-semibold rounded-full">
               {{ getStatusText(order.orderStatus) }}
             </span>
-            <div class="mt-2">
-              <button v-if="order.orderStatus === 1" class="text-sm text-green-600 hover:text-green-500 mr-3">
+            <div class="flex space-x-2">
+              <button v-if="order.orderStatus === 1" @click="updateStatus(2)" class="text-sm bg-green-50 text-green-700 hover:bg-green-100 px-3 py-1.5 rounded-lg font-medium transition-colors">
                 确认支付
               </button>
-              <button v-if="order.orderStatus === 2" class="text-sm text-blue-600 hover:text-blue-500 mr-3">
+              <button v-if="order.orderStatus === 2" @click="updateStatus(3)" class="text-sm bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-lg font-medium transition-colors">
                 标记完成
               </button>
-              <button v-if="order.orderStatus === 3" class="text-sm text-yellow-600 hover:text-yellow-500 mr-3">
-                申请退款
-              </button>
-              <button v-if="order.orderStatus === 1 || order.orderStatus === 2" class="text-sm text-red-600 hover:text-red-500">
+              <button v-if="order.orderStatus <= 2" @click="updateStatus(4)" class="text-sm bg-red-50 text-red-700 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium transition-colors">
                 取消订单
               </button>
             </div>
@@ -57,48 +63,51 @@
         </div>
         
         <!-- 订单商品 -->
-        <div class="border-t border-gray-200 pt-4">
-          <h3 class="text-md font-medium text-gray-900 mb-4">订单商品</h3>
+        <div class="border-t border-gray-100 pt-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">订单商品</h3>
           <div class="space-y-4">
-            <div v-for="(item, index) in order.orderItems" :key="index" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
-              <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 bg-gray-200 rounded-lg flex items-center justify-center">
-                  <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18,8A2,2 0 0,1 20,10V20A2,2 0 0,1 18,22H6A2,2 0 0,1 4,20V10C4,8.89 4.9,8 6,8H18M15,3V5H6C4.89,5 4,5.9 4,7V19A1,1 0 0,0 5,20H19A1,1 0 0,0 20,19V7C20,5.89 19.1,5 18,5H13V3M15,15H9V17H15V15Z"></path>
+            <div v-for="(item, index) in order.orderItems" :key="index" class="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl border border-gray-100 hover:border-blue-200 transition-all">
+              <div class="flex items-center space-x-4">
+                <div class="w-14 h-14 bg-white rounded-xl shadow-sm flex items-center justify-center border border-gray-100">
+                  <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
                   </svg>
                 </div>
                 <div>
-                  <p class="font-medium text-gray-900">{{ item.productName }}</p>
-                  <p class="text-sm text-gray-600 mt-1">{{ item.customizations?.length ? item.customizations.map(c => c.value).join(', ') : '标准' }}</p>
+                  <p class="font-bold text-gray-900">{{ item.productName }}</p>
+                  <p class="text-xs text-gray-500 mt-1 bg-white px-2 py-0.5 rounded border border-gray-100 inline-block">
+                    {{ item.customizations?.length ? item.customizations.map(c => c.value).join(', ') : '标准配置' }}
+                  </p>
                 </div>
               </div>
               <div class="text-right">
-                <p class="font-medium text-gray-900">¥{{ item.unitPrice.toFixed(2) }} × {{ item.quantity }}</p>
-                <p class="text-sm text-gray-600 mt-1">¥{{ (item.unitPrice * item.quantity).toFixed(2) }}</p>
+                <p class="font-bold text-gray-900">¥{{ item.unitPrice.toFixed(2) }} × {{ item.quantity }}</p>
+                <p class="text-sm text-blue-600 font-medium">¥{{ (item.unitPrice * item.quantity).toFixed(2) }}</p>
               </div>
             </div>
           </div>
         </div>
         
         <!-- 订单金额 -->
-        <div class="border-t border-gray-200 pt-4 mt-4">
-          <h3 class="text-md font-medium text-gray-900 mb-4">订单金额</h3>
-          <div class="space-y-2">
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">商品总额</span>
-              <span class="text-gray-900">¥{{ order.totalAmount.toFixed(2) }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">优惠折扣</span>
-              <span class="text-green-600">-¥{{ order.discountAmount.toFixed(2) }}</span>
-            </div>
-            <div class="flex justify-between text-sm">
-              <span class="text-gray-600">配送费</span>
-              <span class="text-gray-900">¥{{ order.deliveryFee.toFixed(2) }}</span>
-            </div>
-            <div class="flex justify-between font-medium border-t border-gray-200 pt-2 mt-2">
-              <span class="text-gray-900">实付金额</span>
-              <span class="text-gray-900">¥{{ order.actualAmount.toFixed(2) }}</span>
+        <div class="border-t border-gray-100 pt-6 mt-6">
+          <div class="bg-gray-50 p-6 rounded-2xl">
+            <div class="space-y-3">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">商品总额</span>
+                <span class="text-gray-900 font-medium">¥{{ order.totalAmount?.toFixed(2) }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">优惠折扣</span>
+                <span class="text-red-500 font-medium">-¥{{ (order.discountAmount || 0).toFixed(2) }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">配送费用</span>
+                <span class="text-gray-900 font-medium">¥{{ (order.deliveryFee || 0).toFixed(2) }}</span>
+              </div>
+              <div class="flex justify-between text-lg font-bold border-t border-gray-200 pt-4 mt-4">
+                <span class="text-gray-900">实付总计</span>
+                <span class="text-blue-600">¥{{ (order.actualAmount || order.totalAmount).toFixed(2) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -107,74 +116,64 @@
       <!-- 客户信息和支付信息 -->
       <div class="space-y-6">
         <!-- 客户信息 -->
-        <div class="card">
-          <h3 class="text-md font-medium text-gray-900 mb-4">客户信息</h3>
-          <div class="space-y-3">
-            <div>
-              <p class="text-sm text-gray-600">客户姓名</p>
-              <p class="font-medium text-gray-900">{{ order.customerName }}</p>
+        <div class="card bg-white border border-gray-100 shadow-sm rounded-2xl p-6">
+          <div class="flex items-center mb-4 space-x-2">
+            <div class="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+              </svg>
             </div>
-            <div>
-              <p class="text-sm text-gray-600">联系电话</p>
-              <p class="font-medium text-gray-900">{{ order.customerPhone }}</p>
+            <h3 class="text-lg font-bold text-gray-900">客户信息</h3>
+          </div>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+              <span class="text-sm text-gray-500">客户姓名</span>
+              <span class="font-bold text-gray-900">{{ order.customerName || '匿名游客' }}</span>
             </div>
-            <div>
-              <p class="text-sm text-gray-600">电子邮箱</p>
-              <p class="font-medium text-gray-900">{{ order.customerEmail || '未提供' }}</p>
+            <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+              <span class="text-sm text-gray-500">联系电话</span>
+              <span class="font-bold text-gray-900">{{ order.customerPhone || '未绑定' }}</span>
             </div>
-            <div>
-              <p class="text-sm text-gray-600">会员等级</p>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                {{ order.memberLevel }}
-              </span>
+            <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+              <span class="text-sm text-gray-500">会员等级</span>
+              <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-bold rounded-lg uppercase">{{ order.memberLevel || 'V0' }}</span>
             </div>
           </div>
         </div>
         
         <!-- 支付信息 -->
-        <div class="card">
-          <h3 class="text-md font-medium text-gray-900 mb-4">支付信息</h3>
-          <div class="space-y-3">
-            <div>
-              <p class="text-sm text-gray-600">支付方式</p>
-              <p class="font-medium text-gray-900">{{ getPaymentMethodText(order.paymentMethod) }}</p>
+        <div class="card bg-white border border-gray-100 shadow-sm rounded-2xl p-6">
+          <div class="flex items-center mb-4 space-x-2">
+            <div class="p-1.5 bg-green-50 rounded-lg text-green-600">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+              </svg>
             </div>
-            <div>
-              <p class="text-sm text-gray-600">支付状态</p>
-              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                {{ order.paymentStatus === 1 ? '已支付' : '未支付' }}
+            <h3 class="text-lg font-bold text-gray-900">支付信息</h3>
+          </div>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+              <span class="text-sm text-gray-500">支付工具</span>
+              <span class="font-bold text-gray-900">{{ getPaymentMethodText(order.paymentMethod) }}</span>
+            </div>
+            <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+              <span class="text-sm text-gray-500">支付状态</span>
+              <span :class="order.paymentStatus === 1 ? 'text-green-600' : 'text-red-500'" class="font-bold">
+                {{ order.paymentStatus === 1 ? '支付成功' : '待支付' }}
               </span>
             </div>
-            <div v-if="order.paymentStatus === 1">
-              <p class="text-sm text-gray-600">支付时间</p>
-              <p class="font-medium text-gray-900">{{ order.paymentTime }}</p>
-            </div>
-            <div v-if="order.paymentStatus === 1">
-              <p class="text-sm text-gray-600">支付订单号</p>
-              <p class="font-medium text-gray-900 text-sm">{{ order.paymentOrderNo }}</p>
-            </div>
-          </div>
-        </div>
-        
-        <!-- 门店信息 -->
-        <div class="card">
-          <h3 class="text-md font-medium text-gray-900 mb-4">门店信息</h3>
-          <div class="space-y-3">
-            <div>
-              <p class="text-sm text-gray-600">门店名称</p>
-              <p class="font-medium text-gray-900">{{ order.storeName }}</p>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600">门店地址</p>
-              <p class="font-medium text-gray-900 text-sm">{{ order.storeAddress }}</p>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600">联系电话</p>
-              <p class="font-medium text-gray-900">{{ order.storePhone }}</p>
+            <div v-if="order.paymentTime" class="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+              <span class="text-sm text-gray-500">支付时间</span>
+              <span class="text-xs font-bold text-gray-900">{{ formatDate(order.paymentTime) }}</span>
             </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <div v-else class="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
+      <p class="text-gray-500 text-lg">无法找到该订单的信息</p>
+      <router-link to="/orders" class="mt-4 inline-block text-blue-600 hover:underline">返回订单列表</router-link>
     </div>
 
     <!-- 订单日志 -->
@@ -249,50 +248,42 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { orderService } from '../../services/api'
+import dayjs from 'dayjs'
 
 const route = useRoute()
 const orderId = computed(() => route.params.id as string)
+const loading = ref(true)
 
-// 模拟订单数据
-const order = ref({
-  id: parseInt(orderId.value) || 1,
-  orderNo: 'SO202601140001',
-  customerName: '张三',
-  customerPhone: '13800138000',
-  customerEmail: 'zhangsan@example.com',
-  memberLevel: '普通会员',
-  storeName: 'Solo Coffee旗舰店',
-  storeAddress: '北京市朝阳区建国路88号',
-  storePhone: '010-12345678',
-  totalAmount: 64.00,
-  discountAmount: 5.00,
-  deliveryFee: 0.00,
-  actualAmount: 59.00,
-  paymentMethod: 1,
-  paymentStatus: 1,
-  paymentTime: '2026-01-14 10:35:00',
-  paymentOrderNo: 'PAY202601140001',
-  orderStatus: 2,
-  createdAt: '2026-01-14 10:30:00',
-  processingTime: '2026-01-14 10:36:00',
-  completedTime: null,
-  orderItems: [
-    {
-      productId: 1,
-      productName: '美式咖啡',
-      quantity: 2,
-      unitPrice: 32.00,
-      customizations: [
-        {
-          optionName: '糖度',
-          value: '少糖'
-        }
-      ]
-    }
-  ]
+// 订单数据
+const order = ref<any>(null)
+
+const fetchOrderDetail = async () => {
+  loading.value = true
+  try {
+    const response = await orderService.getOrderById(parseInt(orderId.value))
+    order.value = response.data
+  } catch (error) {
+    console.error('获取订单详情失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  fetchOrderDetail()
 })
+
+const updateStatus = async (status: number) => {
+  try {
+    await orderService.updateOrderStatus(order.value.id, status)
+    fetchOrderDetail()
+  } catch (error) {
+    alert('操作失败: ' + error)
+  }
+}
 
 // 获取订单状态文本
 const getStatusText = (status: number): string => {
@@ -301,8 +292,8 @@ const getStatusText = (status: number): string => {
     2: '制作中',
     3: '已完成',
     4: '已取消',
-    5: '退款中',
-    6: '已退款'
+    5: '已退款',
+    6: '退款中'
   }
   return statusMap[status] || '未知状态'
 }
@@ -314,8 +305,8 @@ const getStatusClass = (status: number): string => {
     2: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800',
     3: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800',
     4: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800',
-    5: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800',
-    6: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800'
+    5: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800',
+    6: 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800'
   }
   return classMap[status] || 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800'
 }
@@ -329,6 +320,11 @@ const getPaymentMethodText = (method: number): string => {
     4: '银行卡支付'
   }
   return methodMap[method] || '其他支付方式'
+}
+
+const formatDate = (date: string) => {
+  if (!date) return '-'
+  return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
 }
 </script>
 
