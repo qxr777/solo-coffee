@@ -1,0 +1,15 @@
+# Web Framework
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# NLP Tools
+jieba
+
+# Data Processing
+pandas
+numpy
+
+# Utility
+python-dotenv

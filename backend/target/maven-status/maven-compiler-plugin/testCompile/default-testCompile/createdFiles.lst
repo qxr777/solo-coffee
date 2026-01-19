@@ -1,0 +1,12 @@
+com/solocoffee/backend/integration/CategoryIntegrationTest.class
+com/solocoffee/backend/service/OrderServiceTest.class
+com/solocoffee/backend/integration/TestSecurityConfig.class
+com/solocoffee/backend/integration/ProductIntegrationTest.class
+com/solocoffee/backend/service/ProductServiceTest.class
+com/solocoffee/backend/integration/EmployeeIntegrationTest.class
+com/solocoffee/backend/integration/CustomerIntegrationTest.class
+com/solocoffee/backend/service/InventoryServiceTest.class
+com/solocoffee/backend/integration/BOMIntegrationTest.class
+com/solocoffee/backend/integration/OrderIntegrationTest.class
+com/solocoffee/backend/integration/StoreIntegrationTest.class
+com/solocoffee/backend/integration/InventoryIntegrationTest.class

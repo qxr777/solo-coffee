@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.solocoffee.backend.integration.VoiceIntegrationTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 34.42 s -- in com.solocoffee.backend.integration.VoiceIntegrationTest

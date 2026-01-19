@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.solocoffee.backend.integration.PredictionIntegrationTest
+-------------------------------------------------------------------------------
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 45.82 s -- in com.solocoffee.backend.integration.PredictionIntegrationTest

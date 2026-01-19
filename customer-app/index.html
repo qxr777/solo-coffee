@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solo Coffee</title>
+    <!-- Apple ID Login Script -->
+    <script type="text/javascript" src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+    <!-- OAuth Callback Handler -->
+    <script>
+      // 处理OAuth回调
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      const state = urlParams.get('state');
+      const provider = urlParams.get('provider') || 'wechat';
+      
+      if (code && state) {
+        // 验证state防止CSRF攻击
+        const savedState = localStorage.getItem('oauth_state');
+        if (savedState === state) {
+          localStorage.removeItem('oauth_state');
+          
+          // 发送消息给父窗口处理登录
+          if (window.opener) {
+            window.opener.postMessage({
+              type: 'OAUTH_CODE',
+              provider: provider,
+              code: code,
+              state: state
+            }, '*');
+            window.close();
+          } else {
+            // 如果没有父窗口，保存到localStorage供应用处理
+            localStorage.setItem('oauth_callback', JSON.stringify({
+              provider: provider,
+              code: code,
+              state: state
+            }));
+            // 刷新页面
+            window.location.reload();
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

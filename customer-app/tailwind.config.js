@@ -1,0 +1,73 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{vue,js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          DEFAULT: '#6b46c1',
+          50: '#f3e8ff',
+          100: '#e9d8fd',
+          200: '#d6bcfa',
+          300: '#b794f6',
+          400: '#9f7aea',
+          500: '#805ad5',
+          600: '#6b46c1',
+          700: '#553c9a',
+          800: '#44337a',
+          900: '#322659',
+        },
+        secondary: {
+          DEFAULT: '#f6ad55',
+          50: '#fffaf0',
+          100: '#feebc8',
+          200: '#fbd38d',
+          300: '#f6ad55',
+          400: '#ed8936',
+          500: '#dd6b20',
+          600: '#c05621',
+          700: '#9c4221',
+          800: '#7b341e',
+          900: '#652b19',
+        },
+        coffee: {
+          DEFAULT: '#8b5a2b',
+          50: '#f8f3f0',
+          100: '#f1e7e0',
+          200: '#e6d3c1',
+          300: '#d9b99a',
+          400: '#c69c72',
+          500: '#b4804a',
+          600: '#a06934',
+          700: '#8b5a2b',
+          800: '#734b24',
+          900: '#5d3d1e',
+        },
+        success: {
+          DEFAULT: '#10b981',
+          50: '#ecfdf5',
+          100: '#d1fae5',
+          200: '#a7f3d0',
+          300: '#6ee7b7',
+          400: '#34d399',
+          500: '#10b981',
+          600: '#059669',
+          700: '#047857',
+          800: '#065f46',
+          900: '#064e3b',
+        },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: {
+        'soft': '0 4px 20px rgba(0, 0, 0, 0.05)',
+        'medium': '0 4px 30px rgba(0, 0, 0, 0.1)',
+      },
+    },
+  },
+  plugins: [],
+}
