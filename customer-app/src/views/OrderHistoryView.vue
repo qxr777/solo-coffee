@@ -84,10 +84,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useOrderStore } from '../store/orderStore'
 
 const router = useRouter()
+const orderStore = useOrderStore()
 
 // Order filters
 const orderFilters = ref([
@@ -99,45 +101,11 @@ const orderFilters = ref([
 ])
 const selectedFilter = ref('all')
 
-// Mock orders
-const orders = ref([
-  {
-    id: 1,
-    orderNo: 'ORD123456',
-    customerId: 1,
-    storeId: 1,
-    totalAmount: 25.50,
-    actualAmount: 25.50,
-    paymentMethod: 1,
-    orderStatus: 3,
-    pickupTime: new Date().toISOString(),
-    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
-    updatedAt: new Date().toISOString(),
-    remarks: '',
-    items: [
-      { name: 'Americano', quantity: 2, price: 3.50 },
-      { name: 'Latte', quantity: 1, price: 4.75 }
-    ]
-  },
-  {
-    id: 2,
-    orderNo: 'ORD123457',
-    customerId: 1,
-    storeId: 2,
-    totalAmount: 18.75,
-    actualAmount: 18.75,
-    paymentMethod: 2,
-    orderStatus: 2,
-    pickupTime: new Date().toISOString(),
-    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-    updatedAt: new Date().toISOString(),
-    remarks: '',
-    items: [
-      { name: 'Cappuccino', quantity: 1, price: 4.50 },
-      { name: 'Green Tea', quantity: 2, price: 3.25 }
-    ]
-  }
-])
+onMounted(async () => {
+  await orderStore.fetchOrders()
+})
+
+const orders = computed(() => orderStore.allOrders)
 
 const filteredOrders = computed(() => {
   if (selectedFilter.value === 'all') {

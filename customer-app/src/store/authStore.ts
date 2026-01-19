@@ -37,51 +37,15 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const response = await authAPI.login({ phone, password })
-        this.token = response.data.token
-        this.user = response.data.user
-        localStorage.setItem('token', response.data.token)
-        return response.data
+        const response: any = await authAPI.login({ phone, password })
+        this.token = response.token
+        this.user = response.user
+        localStorage.setItem('token', response.token)
+        return response
       } catch (error: any) {
-        // If API call fails, use mock data for testing
-        console.log('API call failed, using mock data for login')
-        
-        // Test account credentials
-        const testAccount = {
-          phone: '13800138000',
-          password: '123456',
-          name: '测试用户',
-          email: 'test@example.com',
-          memberLevelId: 1,
-          points: 100
-        }
-        
-        // Check if credentials match test account
-        if (phone === testAccount.phone && password === testAccount.password) {
-          const mockResponse = {
-            data: {
-              token: 'mock-jwt-token-' + Date.now(),
-              user: {
-                id: 1,
-                name: testAccount.name,
-                phone: testAccount.phone,
-                email: testAccount.email,
-                memberLevelId: testAccount.memberLevelId,
-                points: testAccount.points
-              }
-            }
-          }
-          
-          this.token = mockResponse.data.token
-          this.user = mockResponse.data.user
-          localStorage.setItem('token', mockResponse.data.token)
-          this.error = null
-          return mockResponse.data
-        } else {
-          // If credentials don't match, throw error
-          this.error = '手机号或密码错误'
-          throw new Error('手机号或密码错误')
-        }
+        this.error = error.response?.data?.message || '手机号或密码错误'
+        console.error('API call failed:', error)
+        throw error
       } finally {
         this.loading = false
       }
@@ -91,11 +55,11 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const response = await authAPI.register({ name, phone, email, password })
-        this.token = response.data.token
-        this.user = response.data.user
-        localStorage.setItem('token', response.data.token)
-        return response.data
+        const response: any = await authAPI.register({ name, phone, email, password })
+        this.token = response.token
+        this.user = response.user
+        localStorage.setItem('token', response.token)
+        return response
       } catch (error: any) {
         this.error = error.response?.data?.message || '注册失败'
         throw error
@@ -120,10 +84,11 @@ export const useAuthStore = defineStore('auth', {
       if (!this.token) return
       this.loading = true
       try {
-        const response = await authAPI.getProfile()
-        this.user = response.data
-        return response.data
+        const response: any = await authAPI.getProfile()
+        this.user = response
+        return response
       } catch (error) {
+        console.error('获取用户信息失败:', error)
         this.logout()
         throw error
       } finally {
@@ -148,11 +113,11 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const response = await authAPI.smsLogin({ phone, verificationCode })
-        this.token = response.data.token
-        this.user = response.data.user
-        localStorage.setItem('token', response.data.token)
-        return response.data
+        const response: any = await authAPI.smsLogin({ phone, verificationCode })
+        this.token = response.token
+        this.user = response.user
+        localStorage.setItem('token', response.token)
+        return response
       } catch (error: any) {
         this.error = error.response?.data?.message || '验证码登录失败'
         throw error
@@ -165,11 +130,11 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const response = await authAPI.oauthLogin(provider, code)
-        this.token = response.data.token
-        this.user = response.data.user
-        localStorage.setItem('token', response.data.token)
-        return response.data
+        const response: any = await authAPI.oauthLogin(provider, code)
+        this.token = response.token
+        this.user = response.user
+        localStorage.setItem('token', response.token)
+        return response
       } catch (error: any) {
         this.error = error.response?.data?.message || '第三方登录失败'
         throw error
@@ -182,7 +147,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const response = await authAPI.forgotPassword({ phone, verificationCode, newPassword })
+        const response: any = await authAPI.forgotPassword({ phone, verificationCode, newPassword })
         return response
       } catch (error: any) {
         this.error = error.response?.data?.message || '密码重置失败'
@@ -196,7 +161,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       this.error = null
       try {
-        const response = await authAPI.resetPassword({ oldPassword, newPassword })
+        const response: any = await authAPI.resetPassword({ oldPassword, newPassword })
         return response
       } catch (error: any) {
         this.error = error.response?.data?.message || '密码修改失败'

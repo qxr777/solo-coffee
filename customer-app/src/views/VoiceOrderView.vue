@@ -210,10 +210,12 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/authStore'
 import { useCartStore } from '../store/cartStore'
+import { useProductStore } from '../store/productStore'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
+const productStore = useProductStore()
 
 // State
 const loading = ref(false)
@@ -221,20 +223,11 @@ const error = ref<string | null>(null)
 const isRecording = ref(false)
 const recordingTime = ref(0)
 const voiceResult = ref('')
-const orderPreview = ref<OrderItem[]>([])
+const orderPreview = ref<any[]>([])
 const selectedPickupTime = ref('ASAP')
 const customPickupTime = ref('')
 const orderNotes = ref('')
 const submitting = ref(false)
-
-interface OrderItem {
-  id: number
-  name: string
-  description: string
-  price: number
-  icon: string
-  quantity: number
-}
 
 // Quick Commands
 const quickCommands = ref([
@@ -243,24 +236,11 @@ const quickCommands = ref([
   'Three Cappuccinos',
   'One Croissant',
   'One Muffin',
-  'One Blueberry Muffin',
-  'Add sugar',
-  'No sugar',
   'Extra hot',
   'Iced please',
   'Large size',
   'Medium size'
 ])
-
-// Mock products
-const mockProducts: OrderItem[] = [
-  { id: 1, name: 'Americano', description: 'Classic black coffee', price: 3.50, icon: '☕', quantity: 1 },
-  { id: 2, name: 'Latte', description: 'Espresso with steamed milk', price: 4.75, icon: '☕', quantity: 1 },
-  { id: 3, name: 'Cappuccino', description: 'Espresso with foam', price: 4.50, icon: '☕', quantity: 1 },
-  { id: 4, name: 'Croissant', description: 'Butter croissant', price: 2.50, icon: '🥐', quantity: 1 },
-  { id: 5, name: 'Muffin', description: 'Blueberry muffin', price: 3.25, icon: '🧁', quantity: 1 },
-  { id: 6, name: 'Blueberry Muffin', description: 'Blueberry muffin', price: 3.25, icon: '🧁', quantity: 1 }
-]
 
 let mediaRecorder: MediaRecorder | null = null
 let recognitionInterval: number | null = null
@@ -284,19 +264,13 @@ const startRecording = async () => {
     
     mediaRecorder.onstop = () => {
       // In a real app, send audio to voice recognition API
-      // const response = await voiceAPI.createVoiceOrder({
-      //   audio: audioBlob,
-      //   customerId: authStore.currentUser?.id
-      // })
-      // voiceResult.value = response.recognizedText
       
-      // Use mock result for now
       const mockResults = [
         'One Americano please',
         'Two Lattes with oat milk',
         'Three Cappuccinos with extra foam',
-        'One chocolate croissant and one coffee',
-        'One blueberry muffin and one latte',
+        'One chocolate croissant',
+        'One blueberry muffin',
         'Add sugar to my order',
         'Make it extra hot please',
         'Iced please',
@@ -340,14 +314,20 @@ const stopRecording = () => {
   }
 }
 
-const addProductToOrder = (product: OrderItem, quantity: number) => {
+const addProductToOrder = (product: any, quantity: number) => {
   const existingItem = orderPreview.value.find(item => item.id === product.id)
   if (existingItem) {
     existingItem.quantity += quantity
   } else {
     orderPreview.value.push({
-      ...product,
-      quantity: quantity
+      id: product.id,
+      name: product.name,
+      productNo: product.productNo,
+      description: product.description,
+      price: product.price,
+      quantity: quantity,
+      icon: '☕',
+      imageUrl: product.imageUrl
     })
   }
 }
@@ -355,47 +335,21 @@ const addProductToOrder = (product: OrderItem, quantity: number) => {
 const parseVoiceResult = (result: string) => {
   const lowerResult = result.toLowerCase()
   
-  // Check for quantities
-  const quantityMatch = lowerResult.match(/(\d+)\s+(americano|latte|cappuccino|croissant|muffin)/g)
-  if (quantityMatch) {
-    const quantity = parseInt(quantityMatch[1])
-    const product = mockProducts.find(p => lowerResult.includes(p.name.toLowerCase()))
-    if (product) {
-      addProductToOrder(product, quantity)
+  // Try to find a product that matches the voice result
+  const products = productStore.allProducts
+  const matchedProduct = products.find(p => lowerResult.includes(p.name.toLowerCase()))
+  
+  if (matchedProduct) {
+    // Basic quantity parsing
+    let quantity = 1
+    if (lowerResult.includes('two')) quantity = 2
+    else if (lowerResult.includes('three')) quantity = 3
+    else {
+      const numMatch = lowerResult.match(/\d+/)
+      if (numMatch) quantity = parseInt(numMatch[0])
     }
-  }
-  
-  // Check for add-ons
-  if (lowerResult.includes('sugar')) {
-    orderPreview.value.forEach(item => {
-      if (item.name.toLowerCase().includes('coffee')) {
-        item.price += 0.25
-      }
-    })
-  }
-  
-  // Check for temperature
-  if (lowerResult.includes('hot')) {
-    orderPreview.value.forEach(item => {
-      if (item.name.toLowerCase().includes('coffee')) {
-        item.name = `${item.name} (Hot)`
-      }
-    })
-  } else if (lowerResult.includes('iced')) {
-    orderPreview.value.forEach(item => {
-      if (item.name.toLowerCase().includes('coffee')) {
-        item.name = `${item.name} (Iced)`
-      }
-    })
-  }
-  
-  // Check for size
-  if (lowerResult.includes('large')) {
-    orderPreview.value.forEach(item => {
-      item.price += 0.50
-    })
-  } else if (lowerResult.includes('medium')) {
-    // Default medium size, no price change
+    
+    addProductToOrder(matchedProduct, quantity)
   }
   
   // Clear voice result after processing
@@ -406,43 +360,7 @@ const parseVoiceResult = (result: string) => {
 
 const executeCommand = (command: string) => {
   voiceResult.value = command
-  
-  // Process command
-  if (command === 'One Americano') {
-    addProductToOrder(mockProducts[0], 1)
-  } else if (command === 'Two Lattes') {
-    addProductToOrder(mockProducts[1], 2)
-  } else if (command === 'Three Cappuccinos') {
-    addProductToOrder(mockProducts[2], 3)
-  } else if (command.includes('sugar')) {
-    orderPreview.value.forEach(item => {
-      if (item.name.toLowerCase().includes('coffee')) {
-        item.price += 0.25
-      }
-    })
-    voiceResult.value = 'Added sugar to your order'
-  } else if (command.includes('hot')) {
-    orderPreview.value.forEach(item => {
-      if (item.name.toLowerCase().includes('coffee')) {
-        item.name = `${item.name} (Hot)`
-      }
-    })
-    voiceResult.value = 'Made your order hot'
-  } else if (command.includes('iced')) {
-    orderPreview.value.forEach(item => {
-      if (item.name.toLowerCase().includes('coffee')) {
-        item.name = `${item.name} (Iced)`
-      }
-    })
-    voiceResult.value = 'Made your order iced'
-  } else if (command.includes('large')) {
-    orderPreview.value.forEach(item => {
-      item.price += 0.50
-    })
-    voiceResult.value = 'Changed to large size'
-  } else if (command.includes('medium')) {
-    voiceResult.value = 'Changed to medium size'
-  }
+  parseVoiceResult(command)
   
   // Clear voice result after processing
   setTimeout(() => {
@@ -457,30 +375,20 @@ const removePreviewItem = (index: number) => {
 const submitVoiceOrder = async () => {
   submitting.value = true
   try {
-    // In a real app, submit to API
-    // const response = await orderAPI.createOrder({
-    //   items: orderPreview.value.map(item => ({
-    //     productId: item.id,
-    //     quantity: item.quantity
-    //   })),
-    //   pickupTime: selectedPickupTime.value === 'ASAP' ? new Date().toISOString() : customPickupTime.value,
-    //   remarks: orderNotes.value
-    // })
-    
     // Add items to cart
     orderPreview.value.forEach(item => {
       cartStore.addToCart({
         productId: item.id,
-        productNo: `PROD${item.id}`,
+        productNo: item.productNo,
         name: item.name,
         price: item.price,
         quantity: item.quantity,
-        imageUrl: ''
+        imageUrl: item.imageUrl || ''
       })
     })
     
-    alert('Voice order submitted successfully!')
-    router.push('/checkout')
+    alert('Voice order items added to cart!')
+    router.push('/cart')
   } catch (err: any) {
     error.value = err.message || 'Failed to submit voice order'
   } finally {
@@ -492,13 +400,10 @@ const fetchVoiceData = async () => {
   loading.value = true
   error.value = null
   try {
-    // In a real app, fetch from API
-    // const response = await voiceAPI.getVoiceCommands()
-    // quickCommands.value = response.commands
-    
+    await productStore.fetchProducts()
     loading.value = false
   } catch (err: any) {
-    error.value = err.message || 'Failed to load voice data'
+    error.value = err.message || 'Failed to load products'
     loading.value = false
   }
 }
@@ -511,10 +416,21 @@ const navigateToCart = () => {
   router.push('/cart')
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (!authStore.isAuthenticated) {
     router.push('/login')
     return
+  }
+  await fetchVoiceData()
+})
+
+onUnmounted(() => {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop()
+  }
+  
+  if (recognitionInterval) {
+    clearInterval(recognitionInterval)
   }
 })
 

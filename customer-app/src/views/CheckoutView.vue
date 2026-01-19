@@ -174,19 +174,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCartStore } from '../store/cartStore'
+import { useStoreStore } from '../store/storeStore'
+import { useOrderStore } from '../store/orderStore'
 
 const router = useRouter()
 const cartStore = useCartStore()
+const storeStore = useStoreStore()
+const orderStore = useOrderStore()
 
 // Store selection
-const stores = ref([
-  { id: 1, name: 'Store 1', address: '123 Coffee Street, New York' },
-  { id: 2, name: 'Store 2', address: '456 Brew Avenue, Brooklyn' }
-])
-const selectedStore = ref(1)
+const stores = computed(() => storeStore.nearbyStores)
+const selectedStore = ref<number | null>(null)
 
 // Pickup time
 const selectedPickupTime = ref('ASAP')
@@ -204,33 +205,40 @@ const selectedPaymentMethod = ref(1)
 const orderNotes = ref('')
 
 // Cart data
-const cartItems = ref(cartStore.cartItems)
-const cartTotal = ref(cartStore.cartTotal)
-const taxAmount = ref(cartTotal.value * 0.08) // 8% tax
+const cartItems = computed(() => cartStore.cartItems)
+const cartTotal = computed(() => cartStore.cartTotal)
+const taxAmount = computed(() => cartTotal.value * 0.08) // 8% tax
 const discountAmount = ref(0) // No discount for now
-const totalAmount = ref(cartTotal.value + taxAmount.value - discountAmount.value)
+const totalAmount = computed(() => cartTotal.value + taxAmount.value - discountAmount.value)
 
 const placeOrder = async () => {
+  if (!selectedStore.value) {
+    alert('Please select a store')
+    return
+  }
+
   try {
-    // In a real app, create order via API
-    // await orderStore.createOrder({
-    //   storeId: selectedStore.value,
-    //   items: cartItems.value.map(item => ({
-    //     productId: item.productId,
-    //     quantity: item.quantity
-    //   })),
-    //   paymentMethod: selectedPaymentMethod.value,
-    //   pickupTime: selectedPickupTime.value === 'ASAP' ? new Date().toISOString() : customPickupTime.value,
-    //   remarks: orderNotes.value
-    // })
+    const orderData = {
+      storeId: selectedStore.value,
+      items: cartItems.value.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity
+      })),
+      paymentMethod: selectedPaymentMethod.value,
+      pickupTime: selectedPickupTime.value === 'ASAP' ? new Date().toISOString() : customPickupTime.value,
+      remarks: orderNotes.value
+    }
+    
+    await orderStore.createOrder(orderData)
     
     // Clear cart
     cartStore.clearCart()
     
     // Navigate to order confirmation
-    router.push('/orders')
-  } catch (error) {
+    router.push('/order-history')
+  } catch (error: any) {
     console.error('Failed to place order:', error)
+    alert(error.response?.data?.message || 'Failed to place order')
   }
 }
 
@@ -238,11 +246,15 @@ const navigateBack = () => {
   router.back()
 }
 
-onMounted(() => {
-  // Load cart data
-  cartItems.value = cartStore.cartItems
-  cartTotal.value = cartStore.cartTotal
-  taxAmount.value = cartTotal.value * 0.08
-  totalAmount.value = cartTotal.value + taxAmount.value - discountAmount.value
+onMounted(async () => {
+  // Load stores from backend
+  try {
+    await storeStore.getNearbyStores()
+    if (storeStore.nearbyStores.length > 0) {
+      selectedStore.value = storeStore.nearbyStores[0].id
+    }
+  } catch (error) {
+    console.error('Failed to fetch stores:', error)
+  }
 })
 </script>

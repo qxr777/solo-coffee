@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
-import axios from 'axios'
-import { useAuthStore } from './authStore'
+import { orderAPI } from '../services/api'
 
 interface Order {
   id: number
@@ -55,19 +54,14 @@ export const useOrderStore = defineStore('order', {
       pickupTime: string
       remarks?: string
     }) {
-      const authStore = useAuthStore()
       this.loading = true
       this.error = null
       try {
-        const response = await axios.post('/api/v1/orders', orderData, {
-          headers: {
-            Authorization: `Bearer ${authStore.token}`
-          }
-        })
-        this.currentOrder = response.data
-        return response.data
+        const response: any = await orderAPI.createOrder(orderData)
+        this.currentOrder = response
+        return response
       } catch (error: any) {
-        this.error = error.response?.data?.message || 'Failed to create order'
+        this.error = error.response?.data?.message || '创建订单失败'
         throw error
       } finally {
         this.loading = false
@@ -75,19 +69,14 @@ export const useOrderStore = defineStore('order', {
     },
 
     async fetchOrders() {
-      const authStore = useAuthStore()
       this.loading = true
       this.error = null
       try {
-        const response = await axios.get('/api/v1/orders', {
-          headers: {
-            Authorization: `Bearer ${authStore.token}`
-          }
-        })
-        this.orders = response.data
-        return response.data
+        const response: any = await orderAPI.getOrders({ page: 1, size: 50 })
+        this.orders = response
+        return response
       } catch (error: any) {
-        this.error = error.response?.data?.message || 'Failed to fetch orders'
+        this.error = error.response?.data?.message || '获取订单列表失败'
         throw error
       } finally {
         this.loading = false
@@ -95,19 +84,14 @@ export const useOrderStore = defineStore('order', {
     },
 
     async fetchOrderById(id: number) {
-      const authStore = useAuthStore()
       this.loading = true
       this.error = null
       try {
-        const response = await axios.get(`/api/v1/orders/${id}`, {
-          headers: {
-            Authorization: `Bearer ${authStore.token}`
-          }
-        })
-        this.currentOrder = response.data
-        return response.data
+        const response: any = await orderAPI.getOrderDetail(id)
+        this.currentOrder = response
+        return response
       } catch (error: any) {
-        this.error = error.response?.data?.message || 'Failed to fetch order details'
+        this.error = error.response?.data?.message || '获取订单详情失败'
         throw error
       } finally {
         this.loading = false
@@ -115,22 +99,17 @@ export const useOrderStore = defineStore('order', {
     },
 
     async cancelOrder(orderId: number) {
-      const authStore = useAuthStore()
       this.loading = true
       this.error = null
       try {
-        const response = await axios.put(`/api/v1/orders/${orderId}/status`, { status: 4 }, {
-          headers: {
-            Authorization: `Bearer ${authStore.token}`
-          }
-        })
+        const response: any = await orderAPI.updateOrderStatus(orderId, 4)
         const index = this.orders.findIndex(order => order.id === orderId)
         if (index !== -1) {
-          this.orders[index] = response.data
+          this.orders[index] = response
         }
-        return response.data
+        return response
       } catch (error: any) {
-        this.error = error.response?.data?.message || 'Failed to cancel order'
+        this.error = error.response?.data?.message || '取消订单失败'
         throw error
       } finally {
         this.loading = false

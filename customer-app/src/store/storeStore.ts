@@ -75,8 +75,7 @@ export const useStoreStore = defineStore('store', {
         return this.nearbyStores
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取附近门店失败'
-        // 如果API失败，使用模拟数据
-        this.useMockNearbyStores()
+        console.error('API call failed:', error)
         throw error
       } finally {
         this.loading = false
@@ -102,8 +101,7 @@ export const useStoreStore = defineStore('store', {
         return this.stores
       } catch (error: any) {
         this.error = error.response?.data?.message || '搜索门店失败'
-        // 如果API失败，使用模拟数据
-        this.useMockSearchStores(params.keyword)
+        console.error('API call failed:', error)
         throw error
       } finally {
         this.loading = false
@@ -119,8 +117,7 @@ export const useStoreStore = defineStore('store', {
         return this.selectedStore
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取门店详情失败'
-        // 如果API失败，使用模拟数据
-        this.useMockStoreDetail(storeId)
+        console.error('API call failed:', error)
         throw error
       } finally {
         this.loading = false
@@ -132,18 +129,18 @@ export const useStoreStore = defineStore('store', {
       this.error = null
       try {
         await storeAPI.toggleFavorite(storeId, isFavorite)
-        
+
         // 更新本地状态
         const store = this.stores.find(s => s.id === storeId)
         if (store) {
           store.isFavorite = isFavorite
         }
-        
+
         const nearbyStore = this.nearbyStores.find(s => s.id === storeId)
         if (nearbyStore) {
           nearbyStore.isFavorite = isFavorite
         }
-        
+
         const favoriteStore = this.favoriteStores.find(s => s.id === storeId)
         if (isFavorite && !favoriteStore) {
           const storeToAdd = store || nearbyStore
@@ -153,7 +150,7 @@ export const useStoreStore = defineStore('store', {
         } else if (!isFavorite && favoriteStore) {
           this.favoriteStores = this.favoriteStores.filter(s => s.id !== storeId)
         }
-        
+
         return true
       } catch (error: any) {
         this.error = error.response?.data?.message || '操作失败'
@@ -172,8 +169,7 @@ export const useStoreStore = defineStore('store', {
         return this.favoriteStores
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取收藏门店失败'
-        // 如果API失败，使用模拟数据
-        this.useMockFavoriteStores()
+        console.error('API call failed:', error)
         throw error
       } finally {
         this.loading = false
@@ -235,150 +231,6 @@ export const useStoreStore = defineStore('store', {
           resolve(defaultLocation)
         }
       })
-    },
-
-    // 模拟数据
-    useMockNearbyStores() {
-      this.nearbyStores = [
-        {
-          id: 1,
-          name: 'Solo Coffee 国贸店',
-          address: '北京市朝阳区建国门外大街1号国贸中心1楼',
-          phone: '010-88888888',
-          latitude: 39.9075,
-          longitude: 116.4668,
-          distance: 0.5,
-          rating: 4.8,
-          reviewCount: 1250,
-          openingHours: '08:00-22:00',
-          isFavorite: true,
-          isOpen: true,
-          features: ['Wi-Fi', '座位', '外卖', '停车'],
-          image: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=modern%20coffee%20shop%20exterior%20with%20glass%20windows%20and%20cozy%20interior&size=512x512'
-        },
-        {
-          id: 2,
-          name: 'Solo Coffee 三里屯店',
-          address: '北京市朝阳区三里屯太古里北区NLG-29',
-          phone: '010-99999999',
-          latitude: 39.9342,
-          longitude: 116.4536,
-          distance: 1.2,
-          rating: 4.9,
-          reviewCount: 2100,
-          openingHours: '08:00-23:00',
-          isFavorite: false,
-          isOpen: true,
-          features: ['Wi-Fi', '座位', '外卖', '停车场'],
-          image: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=trendy%20coffee%20shop%20in%20shopping%20district%20with%20modern%20design&size=512x512'
-        },
-        {
-          id: 3,
-          name: 'Solo Coffee 望京店',
-          address: '北京市朝阳区望京SOHO T1 C座101',
-          phone: '010-77777777',
-          latitude: 39.9988,
-          longitude: 116.4753,
-          distance: 2.5,
-          rating: 4.7,
-          reviewCount: 850,
-          openingHours: '07:30-21:00',
-          isFavorite: false,
-          isOpen: true,
-          features: ['Wi-Fi', '座位', '外卖'],
-          image: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=coffee%20shop%20in%20business%20district%20with%20industrial%20design&size=512x512'
-        },
-        {
-          id: 4,
-          name: 'Solo Coffee 中关村店',
-          address: '北京市海淀区中关村大街1号',
-          phone: '010-66666666',
-          latitude: 39.9847,
-          longitude: 116.3055,
-          distance: 5.0,
-          rating: 4.6,
-          reviewCount: 1500,
-          openingHours: '08:00-22:00',
-          isFavorite: false,
-          isOpen: false,
-          features: ['Wi-Fi', '座位', '外卖', '停车场'],
-          image: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=coffee%20shop%20near%20university%20campus%20with%20study%20areas&size=512x512'
-        }
-      ]
-      this.stores = this.nearbyStores
-    },
-
-    useMockSearchStores(keyword: string) {
-      this.stores = [
-        {
-          id: 1,
-          name: 'Solo Coffee 国贸店',
-          address: '北京市朝阳区建国门外大街1号国贸中心1楼',
-          phone: '010-88888888',
-          latitude: 39.9075,
-          longitude: 116.4668,
-          rating: 4.8,
-          reviewCount: 1250,
-          openingHours: '08:00-22:00',
-          isFavorite: true,
-          isOpen: true,
-          features: ['Wi-Fi', '座位', '外卖', '停车'],
-          image: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=modern%20coffee%20shop%20exterior%20with%20glass%20windows%20and%20cozy%20interior&size=512x512'
-        },
-        {
-          id: 5,
-          name: 'Solo Coffee 国贸二店',
-          address: '北京市朝阳区建国门外大街1号国贸中心3楼',
-          phone: '010-88888889',
-          latitude: 39.9076,
-          longitude: 116.4669,
-          rating: 4.7,
-          reviewCount: 650,
-          openingHours: '08:00-22:00',
-          isFavorite: false,
-          isOpen: true,
-          features: ['Wi-Fi', '座位', '外卖'],
-          image: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=coffee%20shop%20inside%20shopping%20mall%20with%20modern%20design&size=512x512'
-        }
-      ].filter(store => store.name.includes(keyword) || store.address.includes(keyword))
-    },
-
-    useMockStoreDetail(storeId: number) {
-      this.selectedStore = {
-        id: storeId,
-        name: 'Solo Coffee 国贸店',
-        address: '北京市朝阳区建国门外大街1号国贸中心1楼',
-        phone: '010-88888888',
-        latitude: 39.9075,
-        longitude: 116.4668,
-        rating: 4.8,
-        reviewCount: 1250,
-        openingHours: '08:00-22:00',
-        isFavorite: true,
-        isOpen: true,
-        features: ['Wi-Fi', '座位', '外卖', '停车'],
-        image: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=modern%20coffee%20shop%20exterior%20with%20glass%20windows%20and%20cozy%20interior&size=512x512'
-      }
-    },
-
-    useMockFavoriteStores() {
-      this.favoriteStores = [
-        {
-          id: 1,
-          name: 'Solo Coffee 国贸店',
-          address: '北京市朝阳区建国门外大街1号国贸中心1楼',
-          phone: '010-88888888',
-          latitude: 39.9075,
-          longitude: 116.4668,
-          rating: 4.8,
-          reviewCount: 1250,
-          openingHours: '08:00-22:00',
-          isFavorite: true,
-          isOpen: true,
-          features: ['Wi-Fi', '座位', '外卖', '停车'],
-          image: 'https://neeko-copilot.bytedance.net/api/text2image?prompt=modern%20coffee%20shop%20exterior%20with%20glass%20windows%20and%20cozy%20interior&size=512x512'
-        }
-      ]
     }
   }
 })

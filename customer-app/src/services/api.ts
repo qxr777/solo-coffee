@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
+  baseURL: (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8090/api/v1',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -16,7 +16,7 @@ if ((import.meta as any).env?.MODE !== 'test') {
       randomUUID: () => Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
     } as any
   }
-  
+
   // Import authStore dynamically to avoid circular dependency
   import('../store/authStore').then(({ useAuthStore }) => {
     // 请求拦截器
@@ -24,14 +24,14 @@ if ((import.meta as any).env?.MODE !== 'test') {
       (config) => {
         const authStore = useAuthStore()
         const token = authStore.token
-        
+
         if (token) {
           config.headers.Authorization = `Bearer ${token}`
         }
-        
+
         config.headers['X-Request-Id'] = crypto.randomUUID()
         config.headers['X-Timestamp'] = Date.now().toString()
-        
+
         return config
       },
       (error) => {
@@ -46,10 +46,10 @@ if ((import.meta as any).env?.MODE !== 'test') {
       },
       (error) => {
         const authStore = useAuthStore()
-        
+
         if (error.response) {
           const { status, data } = error.response
-          
+
           switch (status) {
             case 401:
               // Token过期或无效
@@ -76,7 +76,7 @@ if ((import.meta as any).env?.MODE !== 'test') {
         } else {
           console.error('请求错误:', error.message || '请求配置错误')
         }
-        
+
         return Promise.reject(error)
       }
     )
@@ -87,167 +87,167 @@ export default api
 
 // API服务封装
 export const authAPI = {
-  login: (credentials: { phone: string; password: string }) => 
+  login: (credentials: { phone: string; password: string }) =>
     api.post('/auth/login', credentials),
-  
-  register: (userData: { name: string; phone: string; email: string; password: string }) => 
+
+  register: (userData: { name: string; phone: string; email: string; password: string }) =>
     api.post('/auth/register', userData),
-  
-  logout: () => 
+
+  logout: () =>
     api.post('/auth/logout'),
-  
-  sendSms: (data: { phone: string; type: number }) => 
+
+  sendSms: (data: { phone: string; type: number }) =>
     api.post('/auth/send-sms', data),
-  
-  smsLogin: (data: { phone: string; verificationCode: string }) => 
+
+  smsLogin: (data: { phone: string; verificationCode: string }) =>
     api.post('/auth/sms-login', data),
-  
-  oauthLogin: (provider: string, code: string) => 
+
+  oauthLogin: (provider: string, code: string) =>
     api.post(`/auth/oauth/${provider}`, { code }),
-  
-  getProfile: () => 
+
+  getProfile: () =>
     api.get('/auth/profile'),
-  
-  forgotPassword: (data: { phone: string; verificationCode: string; newPassword: string }) => 
+
+  forgotPassword: (data: { phone: string; verificationCode: string; newPassword: string }) =>
     api.post('/auth/forgot-password', data),
-  
-  resetPassword: (data: { oldPassword: string; newPassword: string }) => 
+
+  resetPassword: (data: { oldPassword: string; newPassword: string }) =>
     api.post('/auth/reset-password', data)
 }
 
 export const storeAPI = {
-  getNearbyStores: (params: { latitude?: number; longitude?: number; radius?: number; page?: number; size?: number }) => 
+  getNearbyStores: (params: { latitude?: number; longitude?: number; radius?: number; page?: number; size?: number }) =>
     api.get('/stores/nearby', { params }),
-  
-  searchStores: (params: { keyword: string; latitude?: number; longitude?: number; page?: number; size?: number }) => 
+
+  searchStores: (params: { keyword: string; latitude?: number; longitude?: number; page?: number; size?: number }) =>
     api.get('/stores/search', { params }),
-  
-  getStoreDetail: (storeId: number) => 
+
+  getStoreDetail: (storeId: number) =>
     api.get(`/stores/${storeId}`),
-  
-  toggleFavorite: (storeId: number, isFavorite: boolean) => 
+
+  toggleFavorite: (storeId: number, isFavorite: boolean) =>
     api.post(`/stores/${storeId}/favorite`, { isFavorite }),
-  
-  getFavoriteStores: (params: { page?: number; size?: number }) => 
+
+  getFavoriteStores: (params: { page?: number; size?: number }) =>
     api.get('/stores/favorites', { params })
 }
 
 export const productAPI = {
-  getProducts: (params: { page?: number; size?: number; categoryId?: number; status?: number; keyword?: string }) => 
+  getProducts: (params: { page?: number; size?: number; categoryId?: number; status?: number; keyword?: string }) =>
     api.get('/products', { params }),
-  
-  getProductDetail: (productId: number) => 
+
+  getProductDetail: (productId: number) =>
     api.get(`/products/${productId}`),
-  
-  getCategories: () => 
+
+  getCategories: () =>
     api.get('/categories')
 }
 
 export const orderAPI = {
-  createOrder: (orderData: any) => 
+  createOrder: (orderData: any) =>
     api.post('/orders', orderData),
-  
-  getOrders: (params: { page?: number; size?: number; startTime?: string; endTime?: string; orderStatus?: number; storeId?: number }) => 
+
+  getOrders: (params: { page?: number; size?: number; startTime?: string; endTime?: string; orderStatus?: number; storeId?: number }) =>
     api.get('/orders', { params }),
-  
-  getOrderDetail: (orderId: number) => 
+
+  getOrderDetail: (orderId: number) =>
     api.get(`/orders/${orderId}`),
-  
-  updateOrderStatus: (orderId: number, status: number) => 
+
+  updateOrderStatus: (orderId: number, status: number) =>
     api.put(`/orders/${orderId}/status`, { status }),
-  
-  payOrder: (orderId: number, paymentMethod: number, paymentChannel: string) => 
+
+  payOrder: (orderId: number, paymentMethod: number, paymentChannel: string) =>
     api.post(`/orders/${orderId}/pay`, { paymentMethod, paymentChannel }),
-  
-  cancelOrder: (orderId: number, reason?: string) => 
+
+  cancelOrder: (orderId: number, reason?: string) =>
     api.post(`/orders/${orderId}/cancel`, { reason })
 }
 
 export const memberAPI = {
-  getMemberInfo: (memberId?: number) => 
+  getMemberInfo: (memberId?: number) =>
     api.get(`/members/${memberId || 'me'}`),
-  
-  getPoints: (memberId?: number) => 
+
+  getPoints: (memberId?: number) =>
     api.get(`/members/${memberId || 'me'}/points`),
-  
-  exchangePoints: (memberId: number, points: number, productId: number) => 
+
+  exchangePoints: (memberId: number, points: number, productId: number) =>
     api.post(`/members/${memberId || 'me'}/points/exchange`, { points, productId }),
-  
-  getCoupons: (params: { storeId?: number }) => 
+
+  getCoupons: (params: { storeId?: number }) =>
     api.get('/coupons/available', { params })
 }
 
 export const recommendAPI = {
-  getRecommendations: (params: { customerId?: number; limit?: number; storeId?: number }) => 
+  getRecommendations: (params: { customerId?: number; limit?: number; storeId?: number }) =>
     api.post('/recommend/products', params),
-  
-  getPromotionRecommendations: (params: { customerId?: number; limit?: number; storeId?: number }) => 
+
+  getPromotionRecommendations: (params: { customerId?: number; limit?: number; storeId?: number }) =>
     api.post('/recommend/promotions', params),
-  
-  getProductCombinations: (params: { customerId?: number; limit?: number; storeId?: number }) => 
+
+  getProductCombinations: (params: { customerId?: number; limit?: number; storeId?: number }) =>
     api.post('/recommend/combinations', params),
-  
-  submitFeedback: (feedbackData: { userId: number; productId: number; feedbackType: string; score?: number; comment?: string }) => 
+
+  submitFeedback: (feedbackData: { userId: number; productId: number; feedbackType: string; score?: number; comment?: string }) =>
     api.post('/recommend/feedback', feedbackData)
 }
 
 export const predictionAPI = {
-  getOrderPrediction: (customerId: number) => 
+  getOrderPrediction: (customerId: number) =>
     api.post('/prediction/predict', { customerId }),
-  
-  confirmPrediction: (predictionId: number) => 
+
+  confirmPrediction: (predictionId: number) =>
     api.post(`/prediction/${predictionId}/confirm`),
-  
-  getPredictions: (params: { customerId?: number; page?: number; size?: number }) => 
+
+  getPredictions: (params: { customerId?: number; page?: number; size?: number }) =>
     api.get('/prediction/orders', { params }),
-  
-  cancelPrediction: (predictionId: number) => 
+
+  cancelPrediction: (predictionId: number) =>
     api.post(`/prediction/${predictionId}/cancel`)
 }
 
 export const voiceAPI = {
-  createVoiceOrder: (data: { voiceInput: string; customerId?: number }) => 
+  createVoiceOrder: (data: { voiceInput: string; customerId?: number }) =>
     api.post('/voice/order', data),
-  
-  getVoiceCommands: () => 
+
+  getVoiceCommands: () =>
     api.get('/voice/commands')
 }
 
 export const reviewAPI = {
-  createReview: (reviewData: { orderId: number; rating: number; comment: string; customerId: number; productReviews?: Array<{ productId: number; rating: number; comment: string }> }) => 
+  createReview: (reviewData: { orderId: number; rating: number; comment: string; customerId: number; productReviews?: Array<{ productId: number; rating: number; comment: string }> }) =>
     api.post('/reviews', reviewData),
-  
-  getOrderReviews: (orderId: number) => 
+
+  getOrderReviews: (orderId: number) =>
     api.get(`/reviews/order/${orderId}`),
-  
-  getCustomerReviews: (customerId: number, params: { page?: number; size?: number }) => 
+
+  getCustomerReviews: (customerId: number, params: { page?: number; size?: number }) =>
     api.get(`/reviews/customer/${customerId}`, { params }),
-  
-  deleteReview: (reviewId: number, customerId?: number) => 
+
+  deleteReview: (reviewId: number, customerId?: number) =>
     api.delete(`/reviews/${reviewId}`, { params: { customerId } })
 }
 
 export const addressAPI = {
-  getAddresses: () => 
+  getAddresses: () =>
     api.get('/addresses'),
-  
-  createAddress: (addressData: any) => 
+
+  createAddress: (addressData: any) =>
     api.post('/addresses', addressData),
-  
-  updateAddress: (addressId: number, addressData: any) => 
+
+  updateAddress: (addressId: number, addressData: any) =>
     api.put(`/addresses/${addressId}`, addressData),
-  
-  deleteAddress: (addressId: number) => 
+
+  deleteAddress: (addressId: number) =>
     api.delete(`/addresses/${addressId}`)
 }
 
 export const notificationAPI = {
-  getNotifications: (params: { page?: number; size?: number; status?: number; type?: number }) => 
+  getNotifications: (params: { page?: number; size?: number; status?: number; type?: number }) =>
     api.get('/notifications', { params }),
-  
-  markAsRead: (notificationId: number) => 
+
+  markAsRead: (notificationId: number) =>
     api.put(`/notifications/${notificationId}/read`),
-  
-  markAllAsRead: () => 
+
+  markAllAsRead: () =>
     api.put('/notifications/read-all')
 }
