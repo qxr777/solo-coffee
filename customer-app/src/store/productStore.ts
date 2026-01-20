@@ -50,7 +50,7 @@ export const useProductStore = defineStore('product', {
       this.error = null
       try {
         const response = await productAPI.getProducts({ page: 1, size: 100 })
-        this.products = response.data || []
+        this.products = response.records || []
         return this.products
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取商品列表失败'
@@ -66,7 +66,7 @@ export const useProductStore = defineStore('product', {
       this.error = null
       try {
         const response = await productAPI.getProductDetail(id)
-        this.currentProduct = response.data
+        this.currentProduct = response || null
         return this.currentProduct
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取商品详情失败'
@@ -82,7 +82,10 @@ export const useProductStore = defineStore('product', {
       this.error = null
       try {
         const response = await productAPI.getCategories()
-        this.categories = response.data || []
+        this.categories = response?.map((category: any) => ({
+          ...category,
+          name: category.categoryName
+        })) || []
         return this.categories
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取分类失败'
@@ -98,7 +101,7 @@ export const useProductStore = defineStore('product', {
       this.error = null
       try {
         const response = await productAPI.getProducts({ categoryId, page: 1, size: 100 })
-        this.products = response.data || []
+        this.products = response.records || []
         return this.products
       } catch (error: any) {
         this.error = error.response?.data?.message || '按分类获取商品失败'
