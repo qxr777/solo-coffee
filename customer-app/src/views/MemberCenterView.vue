@@ -187,6 +187,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/authStore'
 
+import { memberAPI } from '../services/api'
+
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -194,17 +196,10 @@ const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref<string | null>(null)
 const memberInfo = computed(() => authStore.currentUser)
+const pointsHistory = ref<any[]>([])
 
 // Mock data
 const orderCount = ref(12)
-
-const pointsHistory = ref([
-  { id: 1, description: 'Purchase reward', date: new Date(Date.now() - 86400000).toISOString(), points: 50, type: 'earn' },
-  { id: 2, description: 'Points redemption', date: new Date(Date.now() - 172800000).toISOString(), points: -25, type: 'redeem' },
-  { id: 3, description: 'Daily check-in bonus', date: new Date(Date.now() - 259200000).toISOString(), points: 10, type: 'earn' },
-  { id: 4, description: 'Referral bonus', date: new Date(Date.now() - 345600000).toISOString(), points: 100, type: 'earn' },
-  { id: 5, description: 'Birthday bonus', date: new Date(Date.now() - 432000000).toISOString(), points: 20, type: 'earn' }
-])
 
 const redemptionItems = ref([
   { id: 1, name: 'Free Coffee', description: 'Get a free regular coffee', points: 100, icon: '☕' },
@@ -276,8 +271,19 @@ const fetchMemberData = async () => {
   loading.value = true
   error.value = null
   try {
+    // 1. 获取基础资料 (Profile)
     await authStore.fetchUserProfile()
+    
+    // 2. 获取积分历史 (Points)
+    if (authStore.currentUser?.id) {
+      const response: any = await memberAPI.getPoints(authStore.currentUser.id)
+      if (response && response.data) {
+        // 后端返回的数据结构中应该有 records
+        pointsHistory.value = response.data.records || []
+      }
+    }
   } catch (err: any) {
+    console.error('Failed to fetch member data:', err)
     error.value = err.message || 'Failed to load member data'
   } finally {
     loading.value = false

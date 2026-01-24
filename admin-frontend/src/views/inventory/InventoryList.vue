@@ -15,7 +15,7 @@
           自动补货
         </button>
         
-        <button class="btn-primary whitespace-nowrap">
+        <button @click="handleAddStock" class="btn-primary whitespace-nowrap">
           <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
           </svg>
@@ -230,10 +230,14 @@ const handleSearch = () => {
   // 纯前端过滤不需要重新请求，由于后端暂不支持过滤参数
 }
 
+const handleAddStock = () => {
+  alert('提示：请通过"商品管理"页面添加新商品，库存记录将自动生成。')
+}
+
 const updateStock = async (item: any, delta: number) => {
   try {
     const newQuantity = Math.max(0, (item.quantity || 0) + delta)
-    await inventoryService.updateInventoryQuantity(item.id, newQuantity)
+    await inventoryService.updateInventory(item.id, { ...item, quantity: newQuantity })
     item.quantity = newQuantity
     calculateStats()
   } catch (error) {

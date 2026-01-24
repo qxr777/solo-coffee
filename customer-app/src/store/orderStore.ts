@@ -14,11 +14,11 @@ interface Order {
   createdAt: string
   updatedAt: string
   remarks: string
-  items?: Array<{
+  orderItems?: Array<{
     productId: number
     quantity: number
     price: number
-    total: number
+    subtotal: number
   }>
 }
 
@@ -49,7 +49,7 @@ export const useOrderStore = defineStore('order', {
   actions: {
     async createOrder(orderData: {
       storeId: number
-      items: Array<{ productId: number; quantity: number }>
+      orderItems: Array<{ productId: number; quantity: number }>
       paymentMethod: number
       pickupTime: string
       remarks?: string
@@ -73,8 +73,8 @@ export const useOrderStore = defineStore('order', {
       this.error = null
       try {
         const response: any = await orderAPI.getOrders({ page: 1, size: 50 })
-        this.orders = response
-        return response
+        this.orders = response.data?.orders || []
+        return this.orders
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取订单列表失败'
         throw error
@@ -88,8 +88,8 @@ export const useOrderStore = defineStore('order', {
       this.error = null
       try {
         const response: any = await orderAPI.getOrderDetail(id)
-        this.currentOrder = response
-        return response
+        this.currentOrder = response.data
+        return response.data
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取订单详情失败'
         throw error

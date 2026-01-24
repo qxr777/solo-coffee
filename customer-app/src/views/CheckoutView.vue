@@ -220,7 +220,7 @@ const placeOrder = async () => {
   try {
     const orderData = {
       storeId: selectedStore.value,
-      items: cartItems.value.map(item => ({
+      orderItems: cartItems.value.map(item => ({
         productId: item.productId,
         quantity: item.quantity
       })),
@@ -229,16 +229,21 @@ const placeOrder = async () => {
       remarks: orderNotes.value
     }
     
-    await orderStore.createOrder(orderData)
+    const response = await orderStore.createOrder(orderData)
+    console.log('Order created response:', response)
     
     // Clear cart
     cartStore.clearCart()
     
     // Navigate to order confirmation
-    router.push('/order-history')
+    if (response && response.data && response.data.id) {
+      router.push(`/order/${response.data.id}`)
+    } else {
+      router.push('/order-history')
+    }
   } catch (error: any) {
     console.error('Failed to place order:', error)
-    alert(error.response?.data?.message || 'Failed to place order')
+    alert(error.response?.data?.message || 'Failed to place order: ' + error.message)
   }
 }
 

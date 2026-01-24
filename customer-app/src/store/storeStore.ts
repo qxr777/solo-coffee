@@ -63,15 +63,15 @@ export const useStoreStore = defineStore('store', {
           params = {
             latitude: location.latitude || 0,
             longitude: location.longitude || 0,
-            radius: params?.radius,
+            radius: params?.radius || 10000000,
             page: params?.page,
             size: params?.size
           }
         }
 
-        const requestParams = params || { latitude: 0, longitude: 0 }
+        const requestParams = params || { latitude: 0, longitude: 0, radius: 10000000 }
         const response = await storeAPI.getNearbyStores(requestParams)
-        this.nearbyStores = response.data || []
+        this.nearbyStores = response.data?.records || []
         return this.nearbyStores
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取附近门店失败'
@@ -97,7 +97,7 @@ export const useStoreStore = defineStore('store', {
         }
 
         const response = await storeAPI.searchStores(params)
-        this.stores = response.data || []
+        this.stores = response.data?.records || []
         return this.stores
       } catch (error: any) {
         this.error = error.response?.data?.message || '搜索门店失败'
@@ -165,7 +165,7 @@ export const useStoreStore = defineStore('store', {
       this.error = null
       try {
         const response = await storeAPI.getFavoriteStores(params || {})
-        this.favoriteStores = response.data || []
+        this.favoriteStores = response.data?.records || []
         return this.favoriteStores
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取收藏门店失败'

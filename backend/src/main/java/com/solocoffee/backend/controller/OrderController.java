@@ -16,16 +16,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.HashMap;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("/api/v1/orders")
 public class OrderController {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(OrderController.class);
-    
+
     @Autowired
     private OrderService orderService;
-    
+
     @PostMapping
     public ResponseEntity<ApiResponse<Order>> createOrder(@RequestBody Order order) {
         logger.debug("开始创建订单: {}", order);
@@ -37,7 +41,7 @@ public class OrderController {
             if (order.getOrderItems() == null || order.getOrderItems().isEmpty()) {
                 throw new BizException(ErrorCode.PARAMETER_ERROR, "订单商品不能为空");
             }
-            
+
             // 实际创建订单
             Order createdOrder = orderService.createOrder(order);
             logger.debug("订单创建成功: {}", createdOrder);
@@ -49,7 +53,7 @@ public class OrderController {
             throw new BizException(ErrorCode.SYSTEM_ERROR, "系统内部错误");
         }
     }
-    
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<Order>> getOrderById(@PathVariable Long id) {
         Optional<Order> order = orderService.getOrderById(id);
@@ -59,7 +63,7 @@ public class OrderController {
             throw new BizException(ErrorCode.ORDER_NOT_FOUND, "订单不存在");
         }
     }
-    
+
     @GetMapping
     public ResponseEntity<ApiResponse<?>> getAllOrders(
             @RequestParam(required = false, defaultValue = "1") int page,
@@ -70,24 +74,30 @@ public class OrderController {
             @RequestParam(required = false) Long storeId,
             @RequestParam(required = false) Long customerId) {
         try {
-            // 使用默认方法获取所有订单（实际项目中应该实现getOrdersWithFilter方法）
-            List<Order> allOrders = orderService.getAllOrders();
+            // 创建 Pageable
+            Pageable pageable = PageRequest.of(page - 1, size, Sort.by("id").descending());
+
+            // 使用分页查询
+            Page<Order> orderPage = orderService.getOrders(pageable);
+
             Map<String, Object> response = new HashMap<>();
-            response.put("orders", allOrders);
-            response.put("total", allOrders.size());
+            response.put("orders", orderPage.getContent());
+            response.put("total", orderPage.getTotalElements());
             response.put("page", page);
             response.put("size", size);
-            response.put("totalPages", (allOrders.size() + size - 1) / size);
+            response.put("totalPages", orderPage.getTotalPages());
             response.put("current", page);
+
             return ResponseEntity.ok(ApiResponse.success(response));
         } catch (Exception e) {
             logger.error("查询订单列表失败: {}", e.getMessage(), e);
             throw new BizException(ErrorCode.SYSTEM_ERROR, "系统内部错误");
         }
     }
-    
+
     @PutMapping("/{id}/status")
-    public ResponseEntity<ApiResponse<Order>> updateOrderStatus(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<Order>> updateOrderStatus(@PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
         Integer status;
         Object statusObj = request.get("status");
         if (statusObj instanceof Integer) {
@@ -103,11 +113,11 @@ public class OrderController {
         } else {
             throw new BizException(ErrorCode.PARAMETER_ERROR, "订单状态不能为空");
         }
-        
+
         if (status == null) {
             throw new BizException(ErrorCode.PARAMETER_ERROR, "订单状态不能为空");
         }
-        
+
         Order updatedOrder = orderService.updateOrderStatus(id, status);
         if (updatedOrder != null) {
             return ResponseEntity.ok(ApiResponse.success("订单状态更新成功", updatedOrder));
@@ -123,16 +133,17 @@ public class OrderController {
             }
         }
     }
-    
+
     @PostMapping("/{id}/pay")
-    public ResponseEntity<ApiResponse<?>> processPayment(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<?>> processPayment(@PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
         try {
             // 验证订单是否存在
             Optional<Order> optionalOrder = orderService.getOrderById(id);
             if (!optionalOrder.isPresent()) {
                 throw new BizException(ErrorCode.ORDER_NOT_FOUND, "订单不存在");
             }
-            
+
             // 直接调用服务方法（使用正确的参数格式）
             Order paidOrder = orderService.processPayment(id, request);
             if (paidOrder != null) {
@@ -154,18 +165,18 @@ public class OrderController {
             throw new BizException(ErrorCode.SYSTEM_ERROR, "系统内部错误");
         }
     }
-    
+
     @PostMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<?>> cancelOrder(@PathVariable Long id, @RequestBody Map<String, Object> request) {
         try {
             String reason = request.containsKey("cancelReason") ? (String) request.get("cancelReason") : "用户取消";
-            
+
             // 验证订单是否存在
             Optional<Order> optionalOrder = orderService.getOrderById(id);
             if (!optionalOrder.isPresent()) {
                 throw new BizException(ErrorCode.ORDER_NOT_FOUND, "订单不存在");
             }
-            
+
             // 使用updateOrderStatus方法取消订单（状态5: 已取消）
             Order cancelledOrder = orderService.updateOrderStatus(id, 5);
             if (cancelledOrder != null) {
@@ -187,32 +198,33 @@ public class OrderController {
             throw new BizException(ErrorCode.SYSTEM_ERROR, "系统内部错误");
         }
     }
-    
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteOrder(@PathVariable Long id) {
         orderService.deleteOrder(id);
         return ResponseEntity.ok(ApiResponse.success("订单删除成功", null));
     }
-    
+
     @PostMapping("/{id}/refund")
-    public ResponseEntity<ApiResponse<Order>> refundOrder(@PathVariable Long id, @RequestBody Map<String, Object> request) {
+    public ResponseEntity<ApiResponse<Order>> refundOrder(@PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
         try {
             String refundReason = (String) request.get("refundReason");
             Double refundAmountDouble = (Double) request.get("refundAmount");
-            
+
             // 验证参数
             if (refundAmountDouble == null) {
                 throw new BizException(ErrorCode.PARAMETER_ERROR, "退款金额不能为空");
             }
-            
+
             java.math.BigDecimal refundAmount = java.math.BigDecimal.valueOf(refundAmountDouble);
-            
+
             // 验证订单是否存在
             Optional<Order> optionalOrder = orderService.getOrderById(id);
             if (!optionalOrder.isPresent()) {
                 throw new BizException(ErrorCode.ORDER_NOT_FOUND, "订单不存在");
             }
-            
+
             Order refundedOrder = orderService.processRefund(id, refundReason, refundAmount);
             if (refundedOrder != null) {
                 return ResponseEntity.ok(ApiResponse.success("退款处理成功", refundedOrder));

@@ -54,8 +54,8 @@ export const useRecommendationStore = defineStore('recommendation', {
       this.loading = true
       this.error = null
       try {
-        const response = await recommendAPI.getRecommendations(params || {})
-        this.recommendations = Array.isArray(response) ? response : []
+        const response: any = await recommendAPI.getRecommendations(params || {})
+        this.recommendations = Array.isArray(response.data) ? response.data : []
         return this.recommendations
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取推荐失败'
@@ -70,8 +70,8 @@ export const useRecommendationStore = defineStore('recommendation', {
       this.loading = true
       this.error = null
       try {
-        const response = await recommendAPI.getPromotionRecommendations(params || {})
-        this.promotionRecommendations = Array.isArray(response) ? response : []
+        const response: any = await recommendAPI.getPromotionRecommendations(params || {})
+        this.promotionRecommendations = Array.isArray(response.data) ? response.data : []
         return this.promotionRecommendations
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取促销推荐失败'
@@ -86,8 +86,8 @@ export const useRecommendationStore = defineStore('recommendation', {
       this.loading = true
       this.error = null
       try {
-        const response = await recommendAPI.getProductCombinations(params || {})
-        this.productCombinations = Array.isArray(response) ? response : []
+        const response: any = await recommendAPI.getProductCombinations(params || {})
+        this.productCombinations = Array.isArray(response.data) ? response.data : []
         return this.productCombinations
       } catch (error: any) {
         this.error = error.response?.data?.message || '获取产品组合推荐失败'

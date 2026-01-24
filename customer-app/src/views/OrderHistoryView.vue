@@ -40,7 +40,7 @@
           <div class="flex justify-between items-center mb-4">
             <div>
               <h2 class="font-semibold text-gray-900 dark:text-white">Order #{{ order.orderNo }}</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ new Date(order.createdAt).toLocaleString() }}</p>
+              <p class="text-sm text-gray-600 dark:text-gray-400">{{ order.createdAt ? new Date(order.createdAt).toLocaleString() : 'N/A' }}</p>
             </div>
             <div :class="[
               'px-3 py-1 rounded-full text-xs font-medium',
@@ -57,15 +57,15 @@
           </div>
           
           <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
-            <div v-for="(item, index) in order.items" :key="index" class="flex justify-between items-center mb-2">
-              <span class="text-gray-600 dark:text-gray-400">{{ item.name }} × {{ item.quantity }}</span>
-              <span class="text-gray-900 dark:text-white">${{ (item.price * item.quantity).toFixed(2) }}</span>
+            <div v-for="(item, index) in (order.orderItems || [])" :key="index" class="flex justify-between items-center mb-2">
+              <span class="text-gray-600 dark:text-gray-400">{{ item.productName || 'Unknown Product' }} × {{ item.quantity || 0 }}</span>
+              <span class="text-gray-900 dark:text-white">${{ (item.subtotal || 0).toFixed(2) }}</span>
             </div>
           </div>
           
           <div class="flex justify-between items-center font-semibold text-gray-900 dark:text-white">
             <span>Total</span>
-            <span>${{ order.totalAmount.toFixed(2) }}</span>
+            <span>${{ (order.totalAmount || 0).toFixed(2) }}</span>
           </div>
         </div>
       </section>

@@ -116,4 +116,22 @@ public class AuthController {
             return ResponseEntity.internalServerError().body(ApiResponse.internalError("系统内部错误"));
         }
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<ApiResponse<?>> getProfile(@RequestHeader("Authorization") String authHeader) {
+        try {
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(401, "未登录"));
+            }
+            String token = authHeader.substring(7);
+            Map<String, Object> response = authService.getProfile(token);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (RuntimeException e) {
+            logger.error("获取个人信息失败: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(401, e.getMessage()));
+        } catch (Exception e) {
+            logger.error("获取个人信息系统错误: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(ApiResponse.internalError("系统内部错误"));
+        }
+    }
 }

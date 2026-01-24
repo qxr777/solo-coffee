@@ -171,48 +171,66 @@
       <!-- 分页 -->
       <div class="flex items-center justify-between px-6 py-4 border-t border-gray-200 sm:px-6">
         <div class="flex-1 flex justify-between sm:hidden">
-          <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          <button 
+            @click="changePage(currentPage - 1)" 
+            :disabled="currentPage <= 1"
+            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
             上一页
-          </a>
-          <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+          </button>
+          <button 
+            @click="changePage(currentPage + 1)" 
+            :disabled="currentPage >= totalPages"
+            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50">
             下一页
-          </a>
+          </button>
         </div>
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
             <p class="text-sm text-gray-700">
-              显示第 <span class="font-medium">1</span> 到 <span class="font-medium">10</span> 条，共 <span class="font-medium">325</span> 条记录
+              显示第 <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span> 到 <span class="font-medium">{{ Math.min(currentPage * pageSize, total) }}</span> 条，共 <span class="font-medium">{{ total }}</span> 条记录
             </p>
           </div>
           <div>
             <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+              <button 
+                @click="changePage(currentPage - 1)" 
+                :disabled="currentPage <= 1"
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              >
                 <span class="sr-only">上一页</span>
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
-                1
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                2
-              </a>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                3
-              </a>
-              <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                ...
-              </span>
-              <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                33
-              </a>
-              <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+              </button>
+              
+              <template v-for="(page, index) in displayedPages" :key="index">
+                <span v-if="page === -1" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                  ...
+                </span>
+                <button 
+                  v-else
+                  @click="changePage(page)"
+                  :class="[
+                    page === currentPage 
+                      ? 'z-10 bg-blue-50 border-blue-500 text-blue-600' 
+                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50',
+                    'relative inline-flex items-center px-4 py-2 border text-sm font-medium'
+                  ]"
+                >
+                  {{ page }}
+                </button>
+              </template>
+
+              <button 
+                @click="changePage(currentPage + 1)" 
+                :disabled="currentPage >= totalPages"
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+              >
                 <span class="sr-only">下一页</span>
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                 </svg>
-              </a>
+              </button>
             </nav>
           </div>
         </div>
@@ -222,7 +240,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { orderService } from '../../services/api'
 import dayjs from 'dayjs'
 
@@ -327,6 +345,53 @@ const getStatusClass = (status: number): string => {
 
 const formatDate = (date: string) => {
   return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
+}
+
+// 分页逻辑
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(total.value / pageSize.value))
+})
+
+const displayedPages = computed(() => {
+  const pages: number[] = []
+  const count = totalPages.value
+  
+  if (count <= 7) {
+    for (let i = 1; i <= count; i++) pages.push(i)
+  } else {
+    // 始终显示第一页
+    pages.push(1)
+    
+    // 计算中间显示的页码
+    let start = Math.max(2, currentPage.value - 1)
+    let end = Math.min(count - 1, currentPage.value + 1)
+    
+    // 调整 start/end 以确保总是显示3个页码
+    if (currentPage.value < 4) {
+      end = 4
+    }
+    if (currentPage.value > count - 3) {
+      start = count - 3
+    }
+    
+    // 添加省略号逻辑 (使用 -1 代表省略号)
+    if (start > 2) pages.push(-1)
+    
+    for (let i = start; i <= end; i++) {
+        pages.push(i)
+    }
+    
+    if (end < count - 1) pages.push(-1)
+    
+    // 始终显示最后一页
+    pages.push(count)
+  }
+  return pages
+})
+
+const changePage = (page: number) => {
+  if (page < 1 || page > totalPages.value || page === currentPage.value) return
+  currentPage.value = page
 }
 </script>
 

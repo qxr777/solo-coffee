@@ -85,12 +85,12 @@
           <div class="mb-6">
             <h3 class="font-medium text-gray-900 dark:text-white mb-3">Order Items</h3>
             <div class="space-y-3">
-              <div v-for="(item, index) in order.items" :key="index" class="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-700">
+              <div v-for="(item, index) in (order.orderItems || [])" :key="index" class="flex justify-between items-center pb-2 border-b border-gray-200 dark:border-gray-700">
                 <div>
-                  <p class="text-gray-900 dark:text-white">{{ item.name }}</p>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">× {{ item.quantity }}</p>
+                  <p class="text-gray-900 dark:text-white">{{ item.productName || 'Unknown Product' }}</p>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">× {{ item.quantity || 0 }}</p>
                 </div>
-                <span class="font-medium text-gray-900 dark:text-white">${{ (item.price * item.quantity).toFixed(2) }}</span>
+                <span class="font-medium text-gray-900 dark:text-white">${{ (item.subtotal || 0).toFixed(2) }}</span>
               </div>
             </div>
           </div>
@@ -139,12 +139,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useOrderStore } from '../store/orderStore'
 
 const router = useRouter()
 const route = useRoute()
+const orderStore = useOrderStore()
 
 const orderId = Number(route.params.id)
 const order = ref<any>(null)
+
+// ... omitted methods ...
 
 const orderStatusText = (status: number) => {
   switch (status) {
@@ -177,11 +181,14 @@ const paymentMethodText = (method: number) => {
 
 const cancelOrder = async () => {
   try {
-    // In a real app, cancel order via API
-    // await orderStore.cancelOrder(orderId)
+    await orderStore.cancelOrder(orderId)
+    // Refresh order details after cancellation
+    await orderStore.fetchOrderById(orderId)
+    order.value = orderStore.currentOrderDetails
     alert('Order cancelled successfully')
   } catch (error) {
     console.error('Failed to cancel order:', error)
+    alert('Failed to cancel order')
   }
 }
 
@@ -191,32 +198,16 @@ const reorder = () => {
 }
 
 const navigateBack = () => {
-  router.back()
+  router.push('/orders')
 }
 
 onMounted(async () => {
-  // In a real app, fetch order from API
-  // await orderStore.fetchOrderById(orderId)
-  // order.value = orderStore.currentOrderDetails
-  
-  // Mock data for now
-  order.value = {
-    id: orderId,
-    orderNo: `ORD${123450 + orderId}`,
-    customerId: 1,
-    storeId: 1,
-    totalAmount: 25.50,
-    actualAmount: 25.50,
-    paymentMethod: 1,
-    orderStatus: 2,
-    pickupTime: new Date().toISOString(),
-    createdAt: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-    updatedAt: new Date().toISOString(),
-    remarks: '',
-    items: [
-      { name: 'Americano', quantity: 2, price: 3.50 },
-      { name: 'Latte', quantity: 1, price: 4.75 }
-    ]
+  try {
+    await orderStore.fetchOrderById(orderId)
+    order.value = orderStore.currentOrderDetails
+  } catch (e) {
+    console.error('Fetch order error', e)
+    // Consider adding error handling/redirect
   }
 })
 </script>

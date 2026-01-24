@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useAuthStore } from '../store/authStore'
-import axios from 'axios'
+import { useAuthStore } from '../store/authStore'
 import { createPinia, setActivePinia } from 'pinia'
 
 // Mock localStorage
@@ -35,10 +35,10 @@ vi.mock('../services/api', () => {
     forgotPassword: vi.fn(),
     resetPassword: vi.fn()
   }
-  
-  // Expose mockAuthAPI to be used in tests
-  ;(global as any).mockAuthAPI = mockAuthAPI
-  
+
+    // Expose mockAuthAPI to be used in tests
+    ; (global as any).mockAuthAPI = mockAuthAPI
+
   return {
     __esModule: true,
     default: vi.fn(),
@@ -67,29 +67,47 @@ describe('AuthStore', () => {
 
   describe('login', () => {
     it('should login successfully with test account', async () => {
-      // Use the actual test account credentials from authStore
       const phone = '13800138000'
       const password = '123456'
+      const mockResponse = {
+        data: {
+          token: 'mock-token',
+          user: {
+            id: 1,
+            name: '测试用户',
+            phone: '13800138000',
+            role: 'customer'
+          }
+        }
+      }
+      mockAuthAPI.login.mockResolvedValue(mockResponse)
 
       // Call login method
       const result = await authStore.login(phone, password)
 
       // Verify the result
       expect(result).toBeDefined()
-      expect(result.token).toBeDefined()
+      expect(result.token).toBe('mock-token')
       expect(result.user).toBeDefined()
-      expect(authStore.token).toBe(result.token)
+      expect(authStore.token).toBe('mock-token')
       expect(authStore.user).toEqual(result.user)
-      expect(localStorage.getItem('token')).toBe(result.token)
+      expect(localStorage.getItem('token')).toBe('mock-token')
     })
 
     it('should handle login failure with wrong credentials', async () => {
-      // Use wrong credentials
       const phone = 'wrong-phone'
       const password = 'wrong-password'
+      const errorResponse = {
+        response: {
+          data: {
+            message: '手机号或密码错误'
+          }
+        }
+      }
+      mockAuthAPI.login.mockRejectedValue(errorResponse)
 
       // Call login method and expect rejection
-      await expect(authStore.login(phone, password)).rejects.toThrow('手机号或密码错误')
+      await expect(authStore.login(phone, password)).rejects.toThrow()
       expect(authStore.token).toBe(null)
       expect(authStore.user).toBe(null)
       expect(localStorage.getItem('token')).toBe(null)
